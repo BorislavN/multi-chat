@@ -1,3 +1,14 @@
-body{
+body {
     background-color: antiquewhite;
+    box-sizing: border-box;
+    text-align: center;
+    font-size: 18px;
+}
+
+#panel {
+    background-color: silver;
+    display: inline-block;
+    margin: 200px auto;
+    padding: 20px;
+    border-radius: 6px;
 }
