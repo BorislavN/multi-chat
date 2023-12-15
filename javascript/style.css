@@ -2,13 +2,108 @@ body {
     background-color: antiquewhite;
     box-sizing: border-box;
     text-align: center;
-    font-size: 18px;
+    font-size: 24px;
 }
 
-#panel {
-    background-color: silver;
-    display: inline-block;
-    margin: 200px auto;
-    padding: 20px;
-    border-radius: 6px;
+#login {
+    background-color: #c9c7c7;
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    margin: 150px auto;
+    padding: 45px 25px;
+    border-radius: 10px;
+    min-height: 250px;
+    width: 400px;
+    text-align: center;
 }
+
+.element {
+    border: none;
+    font-size: inherit;
+    display: block;
+    margin: 10px auto;
+    text-align: center;
+    box-sizing: inherit;
+}
+
+button {
+    font-weight: bold;
+    border-radius: 6px;
+    outline: none;
+    padding: 10px 20px;
+    background-color: #515254;
+    color: #f2f2f2;
+    cursor: pointer;
+}
+
+label {
+    font-weight: 500;
+}
+
+input {
+    padding: 5px 0px;
+    width: 100%;
+    border-radius: 3px;
+}
+
+#loginError {
+    padding: 15px 0px;
+    width: 100%;
+    border-radius: 6px;
+    background-color: #eb4d42;
+    color: #f2f2f2;
+    font-weight: bold;
+}
+
+/*.root {
+    -fx-background-color: #c9c7c7;
+}
+
+.label {
+    -fx-font-weight: bold;
+    -fx-font-size: 18;
+}
+
+.text-field {
+    -fx-font-size: 18;
+    -fx-background-radius: 2;
+}
+
+#contacts {
+    -fx-background-color: #c9c7c7;
+}
+
+#announcementMessage, #receiverLabel {
+    -fx-background-radius: 6;
+    -fx-background-color: #515254;
+    -fx-text-fill: #f2f2f2;
+}
+
+#joinPageError, #settingsError {
+    -fx-background-radius: 6;
+    -fx-background-color: #eb4d42;
+    -fx-text-fill: #f2f2f2;
+}
+
+.button {
+    -fx-font-weight: 600;
+    -fx-background-radius: 6;
+    -fx-font-size: 18;
+    -fx-background-color: #515254;
+    -fx-text-fill: #f2f2f2;
+    -fx-cursor: hand;
+}
+
+.atButton {
+    -fx-background-radius: 5;
+    -fx-border-color: #515254;
+    -fx-border-radius: 3;
+    -fx-border-width: 4;
+}
+
+.selectedButton {
+    -fx-background-color: #f2f2f2;
+    -fx-text-fill: #515254
+}
+*/

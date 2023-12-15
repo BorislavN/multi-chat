@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,11 +8,19 @@
     <script src="script.js"></script>
     <link rel="stylesheet" type="text/css" href="style.css" />
 </head>
+
 <body>
-    <div id="panel">
-       <h2>Enter username:</h2>
-       <input type="text">
-       <button>join</button>
+    <div id="login">
+        <div id="loginError" class="element">Invalid username!</div>
+        <label for="username">Enter username:</label>
+        <input id="username" type="text" class="element">
+        <button onclick="onJoinClick();" class="element">Join</button>
+    </div>
+    <div id="main" hidden="true">
+        <h2>Enter username:</h2>
+        <input type="text">
+        <button type="button">join</button>
     </div>
 </body>
+
 </html>

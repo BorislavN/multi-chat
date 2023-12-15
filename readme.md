@@ -7,7 +7,7 @@ The server implementation - https://github.com/BorislavN/javafx-demo/blob/main/u
 Looked around on the web and found a solution, that enables socket to websocket communication.
 While it does work, it seems like black magic to say the least.
 
-Code here - https://github.com/BorislavN/multi-chat/blob/main/java/src/main/java/app/chat/WebSocketDemo.java
+Code here - https://github.com/BorislavN/multi-chat/blob/main/java/server/src/main/java/app/server/WebSocketDemo.java
 
 
 So, I decided to create this repository.
