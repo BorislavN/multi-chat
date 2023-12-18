@@ -9,7 +9,6 @@ While it does work, it seems like black magic to say the least.
 
 Code here - https://github.com/BorislavN/multi-chat/blob/main/java/server/src/main/java/app/server/WebSocketDemo.java
 
-
 So, I decided to create this repository.
 Here I will try to implement a cross-platform chat,
 one that enables both javascript and javafx clients to connect to the server.

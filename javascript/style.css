@@ -3,107 +3,109 @@ body {
     box-sizing: border-box;
     text-align: center;
     font-size: 24px;
+    font-family: Arial, Helvetica, sans-serif;
 }
 
-#login {
+body *{
+    box-sizing: inherit;
+    font-size: inherit;
+    font-family: inherit;
+}
+
+#login, #main {
     background-color: #c9c7c7;
     display: flex;
     flex-direction: column;
     justify-content: start;
     margin: 150px auto;
-    padding: 45px 25px;
     border-radius: 10px;
-    min-height: 250px;
-    width: 400px;
     text-align: center;
 }
 
-.element {
-    border: none;
-    font-size: inherit;
+#login{
+    padding: 45px 25px;
+    min-height: 250px;
+    width: 450px;
+}
+
+#main{
+    width: 550px;
+    padding: 10px 10px;
+}
+
+
+#login>*{
     display: block;
     margin: 10px auto;
     text-align: center;
-    box-sizing: inherit;
-}
-
-button {
-    font-weight: bold;
-    border-radius: 6px;
-    outline: none;
-    padding: 10px 20px;
-    background-color: #515254;
-    color: #f2f2f2;
-    cursor: pointer;
 }
 
 label {
-    font-weight: 500;
+    font-weight: 600;
 }
 
 input {
     padding: 5px 0px;
     width: 100%;
     border-radius: 3px;
+    border: none;
 }
 
-#loginError {
+button {
+    font-weight: bold;
+    border-radius: 6px;
+    border: none;
+    padding: 10px 25px;
+    background-color: #515254;
+    color: #f2f2f2;
+    cursor: pointer;
+}
+
+.error {
+    background-color: #eb4d42 !important;
+}
+
+.pane {
     padding: 15px 0px;
     width: 100%;
     border-radius: 6px;
-    background-color: #eb4d42;
+    background-color: #515254;
     color: #f2f2f2;
     font-weight: bold;
 }
 
-/*.root {
-    -fx-background-color: #c9c7c7;
+#main>*{
+    text-align: center;
+    display: block;
+    margin-bottom: 10px;
+    padding: 10px 0px;
+    width: 100%;
 }
 
-.label {
-    -fx-font-weight: bold;
-    -fx-font-size: 18;
+#wrapper {
+    padding: 0px;
+    margin-bottom: 0px;
+    display: flex;
+    gap: 5px;
 }
 
-.text-field {
-    -fx-font-size: 18;
-    -fx-background-radius: 2;
+#wrapper>* {
+    padding: 10px 5px;
+    width: max-content;
 }
 
-#contacts {
-    -fx-background-color: #c9c7c7;
+#sendBtn{
+    min-width: 100px;
 }
 
-#announcementMessage, #receiverLabel {
-    -fx-background-radius: 6;
-    -fx-background-color: #515254;
-    -fx-text-fill: #f2f2f2;
+#messageField{
+    flex-grow: 1;
 }
 
-#joinPageError, #settingsError {
-    -fx-background-radius: 6;
-    -fx-background-color: #eb4d42;
-    -fx-text-fill: #f2f2f2;
+#area{
+    font-size: 22px;
+    padding: 10px;
+    text-align: left;
+    resize: none;
+    min-height: 400px;
 }
-
-.button {
-    -fx-font-weight: 600;
-    -fx-background-radius: 6;
-    -fx-font-size: 18;
-    -fx-background-color: #515254;
-    -fx-text-fill: #f2f2f2;
-    -fx-cursor: hand;
-}
-
-.atButton {
-    -fx-background-radius: 5;
-    -fx-border-color: #515254;
-    -fx-border-radius: 3;
-    -fx-border-width: 4;
-}
-
-.selectedButton {
-    -fx-background-color: #f2f2f2;
-    -fx-text-fill: #515254
-}
-*/

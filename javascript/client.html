@@ -5,21 +5,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Client</title>
-    <script src="script.js"></script>
+    <script src="script.js" defer></script>
     <link rel="stylesheet" type="text/css" href="style.css" />
 </head>
 
 <body>
     <div id="login">
-        <div id="loginError" class="element">Invalid username!</div>
-        <label for="username">Enter username:</label>
-        <input id="username" type="text" class="element">
-        <button onclick="onJoinClick();" class="element">Join</button>
+        <div id="loginError" class="pane error" style="opacity: 0;">Name can't be blank or have "|"!</div>
+        <label for="usernameField">Enter username:</label>
+        <input id="usernameField" type="text">
+        <button onclick="onJoinClick();" id="joinBtn">Join</button>
     </div>
-    <div id="main" hidden="true">
-        <h2>Enter username:</h2>
-        <input type="text">
-        <button type="button">join</button>
+
+    <div id="main" style="display: none;">
+        <div id="userPane" class="pane"></div>
+        <button id="backBtn" onclick="onChangeNameClick();">Change name</button>
+        <textarea id="area" readonly></textarea>
+        <div id="wrapper">
+            <input id="messageField" type="text">
+            <button id="sendBtn" onclick="onSendClick();">Send</button>
+        </div>
     </div>
 </body>
 
