@@ -1,30 +1,64 @@
 var currentName;
+const loginDiv = document.getElementById("login");
+const loginError = document.getElementById("loginError");
+const usernameInput = document.getElementById("usernameField");
+const joinBtn = document.getElementById("joinBtn");
 
-var loginDiv = document.getElementById("login");
-var mainDiv = document.getElementById("main");
-var userPane = document.getElementById("userPane");
+const mainDiv = document.getElementById("main");
+const userPane = document.getElementById("userPane");
+const backBtn = document.getElementById("backBtn");
+const textArea = document.getElementById("area");
+const messageInput = document.getElementById("messageField");
+const sendBtn = document.getElementById("sendBtn");
+
+const socket = new WebSocket("ws://localhost:80");
+
+socket.addEventListener("open", (event) => {
+  joinBtn.disabled = false;
+});
+
+socket.addEventListener("message", (event) => {
+  textArea.value += `${event.data}\n`;
+});
+
+socket.addEventListener("error", (event) => {
+  this.disableAllButtons();
+
+  this.showLoginError("Exception occurred!");
+  this.setGreeting("Exception occurred!")
+
+  console.log(`Exception occurred! - ${event}`);
+});
+
+socket.addEventListener("close", (event) => {
+  this.disableAllButtons();
+
+  this.showLoginError("Connection closed!");
+  this.setGreeting("Connection closed!")
+
+  console.log(`Connection closed - code: ${event.code}`);
+});
+
+window.addEventListener("beforeunload", (event) => {
+  document.removeEventListener("keypress", this.onEnter);
+  socket.close();
+});
 
 document.addEventListener("keydown", this.onEnter);
 
-//TODO: add Websocket logic
-
 function onJoinClick() {
-  const errorPane = document.getElementById("loginError");
-  const usernameInput = document.getElementById("usernameField");
-
   let value = this.escapeString(usernameInput.value);
   let status = this.validateText(value);
 
   if ("valid" !== status) {
-    errorPane.textContent = status;
-    errorPane.style.opacity = "1";
+    this.showLoginError(status);
 
     return;
   }
 
   //Check if username is taken
 
-  errorPane.style.opacity = "0";
+  loginError.style.opacity = "0";
   currentName = value;
 
   this.setGreeting();
@@ -32,9 +66,6 @@ function onJoinClick() {
 };
 
 function onSendClick() {
-  const area = document.getElementById("area");
-  const messageInput = document.getElementById("messageField");
-
   let value = this.escapeString(messageInput.value);
   let status = this.validateText(value);
 
@@ -44,11 +75,17 @@ function onSendClick() {
     return;
   }
 
-  //Send to server
+  socket.send(`${currentName}: ${value}`);
+
+  //Remove when java server is implemented
+  textArea.value += `${currentName}: ${value}\n`;
 
   messageInput.value = "";
   this.setGreeting();
-  area.value += `${currentName}: ${value}\n`;
+};
+
+function onChangeNameClick() {
+  this.toggleVisibility();
 };
 
 function onEnter(event) {
@@ -63,19 +100,13 @@ function onEnter(event) {
   }
 
   if ("usernameField" === active.id) {
-    document.getElementById("joinBtn").click();
-
-    return;
+    joinBtn.click();
   }
 
   if ("messageField" === active.id) {
-    document.getElementById("sendBtn").click();
-
-    return;
+    sendBtn.click();
   }
-}
-
-
+};
 
 function setGreeting(errorMessage) {
   if (errorMessage) {
@@ -87,6 +118,11 @@ function setGreeting(errorMessage) {
 
   userPane.classList.remove("error");
   userPane.textContent = `Welcome, ${currentName}!`
+};
+
+function showLoginError(message) {
+  loginError.textContent = message;
+  loginError.style.opacity = "1";
 };
 
 function validateText(text) {
@@ -101,15 +137,17 @@ function validateText(text) {
   return "valid";
 };
 
-function onChangeNameClick() {
-  this.toggleVisibility();
-};
-
 function toggleVisibility() {
   let temp = loginDiv.style.display;
 
   loginDiv.style.display = mainDiv.style.display;
   mainDiv.style.display = temp;
+};
+
+function disableAllButtons() {
+  joinBtn.disabled = true;
+  backBtn.disabled = true;
+  sendBtn.disabled = true;
 };
 
 function escapeString(value) {

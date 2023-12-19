@@ -30,6 +30,7 @@ socket.addEventListener("open", (event) => {
 public class WebSocketDemo {
     public static void main(String[] args) throws IOException, NoSuchAlgorithmException {
         ServerSocket server = new ServerSocket(80);
+
         try {
             System.out.println("Server has started on 127.0.0.1:80.\r\nWaiting for a connection…");
             Socket client = server.accept();
@@ -81,7 +82,7 @@ public class WebSocketDemo {
             }
             return new String(decoded, "UTF-8");
         } catch (IOException ex) {
-            ex.printStackTrace();
+          System.err.println(ex.getMessage());
         }
         return "ping";
     }

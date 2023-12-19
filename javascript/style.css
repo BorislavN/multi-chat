@@ -12,6 +12,12 @@ body *{
     font-family: inherit;
 }
 
+
+*:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
 #login, #main {
     background-color: #c9c7c7;
     display: flex;
