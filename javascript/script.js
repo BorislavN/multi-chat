@@ -27,7 +27,7 @@ socket.addEventListener("error", (event) => {
   this.showLoginError("Exception occurred!");
   this.setGreeting("Exception occurred!")
 
-  console.log(`Exception occurred! - ${event}`);
+  console.log(`Exception occurred!`);
 });
 
 socket.addEventListener("close", (event) => {

@@ -27,7 +27,7 @@ socket.addEventListener("open", (event) => {
 */
 
 //Sample from: https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_a_WebSocket_server_in_Java
-public class WebSocketDemo {
+public class DemoServer {
     public static void main(String[] args) throws IOException, NoSuchAlgorithmException {
         ServerSocket server = new ServerSocket(80);
 
@@ -59,6 +59,10 @@ public class WebSocketDemo {
 
                     while ((message = decodeMessage(in)) != null && !message.isEmpty()) {
                         System.out.println(message);
+
+                        if ("error".equals(message)){
+                            break;
+                        }
                     }
                 }
             } finally {
@@ -83,7 +87,8 @@ public class WebSocketDemo {
             return new String(decoded, "UTF-8");
         } catch (IOException ex) {
           System.err.println(ex.getMessage());
+
+          return  "error";
         }
-        return "ping";
     }
 }
