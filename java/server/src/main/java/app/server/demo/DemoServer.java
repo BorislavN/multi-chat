@@ -1,4 +1,4 @@
-package app.server;
+package app.server.demo;
 
 import java.io.IOException;
 import java.io.InputStream;

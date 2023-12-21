@@ -1,4 +1,4 @@
-package app.client;
+package app.client.fx;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
