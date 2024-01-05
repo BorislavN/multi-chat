@@ -35,7 +35,7 @@ public class DemoClient {
 
         @Override
         public void onOpen(WebSocket webSocket) {
-            System.out.println("onOpen using subprotocol " + webSocket.getSubprotocol());
+            System.out.println("onOpen using sub-protocol " + webSocket.getSubprotocol());
             WebSocket.Listener.super.onOpen(webSocket);
         }
 
