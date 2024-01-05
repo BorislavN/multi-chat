@@ -60,7 +60,7 @@ public class DemoServer {
                     while ((message = decodeMessage(in)) != null && !message.isEmpty()) {
                         System.out.println(message);
 
-                        if ("error".equals(message)){
+                        if ("error".equals(message)) {
                             break;
                         }
                     }
@@ -78,17 +78,84 @@ public class DemoServer {
         try {
             byte[] data = new byte[1024];
             int size = in.read(data);
-            if (size == -1) return null;
-            byte[] decoded = new byte[size - 6];
-            byte[] key = new byte[]{data[2], data[3], data[4], data[5]};
-            for (int i = 0; i < size - 6; i++) {
-                decoded[i] = (byte) (data[i + 6] ^ key[i & 0x3]);
+
+            if (size == -1) {
+                return null;
+            }
+
+            byte[] key = new byte[4];
+            long finalLength = 0;
+            long payloadStartIndex = -1;
+
+            for (int index = 0; index < data.length; index++) {
+                byte currentByte = data[index];
+
+                String byteAsString = toBinaryString(currentByte);
+
+                System.out.println();
+                System.out.println("Byte number: " + (index + 1) + ", decimal - " + Byte.toUnsignedInt(currentByte) + ", binary - " + byteAsString);
+
+                if (index == 0) {
+                    char finished = byteAsString.charAt(0);
+                    String opcode = byteAsString.substring(4);
+                    System.out.println("Is finished: " + finished);
+                    System.out.println("Opcode: 0x" + Integer.toHexString(Byte.parseByte(opcode, 2)));
+
+                    continue;
+                }
+
+                if (index == 1) {
+                    char masked = byteAsString.charAt(0);
+                    byte length = Byte.parseByte(byteAsString.substring(1), 2);
+                    finalLength = length;
+
+
+                    if (length == 126) {
+                        finalLength = Long.parseLong(toBinaryString(data[index + 1]) + toBinaryString(data[index + 2]), 2);
+
+                        index += 2;
+                    }
+
+                    if (length == 127) {
+                        finalLength = Long.parseLong(toBinaryString(data[index + 1]) + toBinaryString(data[index + 2])
+                                + toBinaryString(data[index + 3]) + toBinaryString(data[index + 4])
+                                + toBinaryString(data[index + 5]) + toBinaryString(data[index + 6])
+                                + toBinaryString(data[index + 7]) + toBinaryString(data[index + 8]), 2);
+
+                        index += 8;
+                    }
+
+                    System.out.println("Is masked: " + masked);
+                    System.out.println("Length: " + finalLength);
+
+                    continue;
+                }
+
+                key = new byte[]{currentByte, data[index + 1], data[index + 2], data[index + 3]};
+                payloadStartIndex = index + 4;
+
+                System.out.println("Mask: " + toBinaryString(key[0]) + " " + toBinaryString(key[1]) + " " + toBinaryString(key[2]) + " " + toBinaryString(key[3]));
+
+                break;
+            }
+
+            System.out.println();
+
+            byte[] decoded = new byte[(int) finalLength];
+
+            for (int i = (int) payloadStartIndex; i < payloadStartIndex + finalLength; i++) {
+                decoded[(int) (i - payloadStartIndex)] = (byte) (data[i] ^ key[(int) (i - payloadStartIndex) % 4]);
             }
             return new String(decoded, "UTF-8");
         } catch (IOException ex) {
-          System.err.println(ex.getMessage());
+            System.err.println(ex.getMessage());
 
-          return  "error";
+            return "error";
         }
     }
+
+    private static String toBinaryString(byte currentByte) {
+        return Integer.toBinaryString((currentByte & 255));
+    }
+
 }
