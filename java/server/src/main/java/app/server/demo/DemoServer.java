@@ -73,7 +73,9 @@ public class DemoServer {
         }
     }
 
-    //Taken from: https://stackoverflow.com/questions/8870833/decode-send-message-from-websocket-with-java
+    //TODO: implement logic fragmented messages
+    // the java WebSocket Client has same sort of internal buffer, and sends the long messages as few fragmented ones - ignoring the finished flag
+    // while the JS implementation sends the whole thing
     private static String decodeMessage(InputStream in) {
         try {
             byte[] data = new byte[2];
@@ -84,13 +86,11 @@ public class DemoServer {
                 return "error";
             }
 
-//            long finalLength = 0;
-
             boolean isFinished = getMostSignificantBit(data[0]);
             String opcode = getOpcode(data[0]);
 
             boolean isMasked = getMostSignificantBit(data[1]);
-            int length = data[1] & 127;
+            int length = getPayloadLength(data[1], in);
 
             System.out.println();
             System.out.println(DELIMITER);
@@ -102,12 +102,12 @@ public class DemoServer {
                 return "error";
             }
 
-            if (length > 125) {
-                System.err.println("Length not yet supported!");
+            if (length == -1) {
+                System.err.println("Encountered exception while reading payload length!");
                 return "error";
             }
 
-            if (length < 1) {
+            if (length == 0) {
                 System.err.println("No Payload!");
                 return "error";
             }
@@ -121,34 +121,6 @@ public class DemoServer {
             }
 
             System.out.printf("Mask: %s%n%n", joinArrayToBinaryString(mask, " "));
-
-//                TODO: implement logic for bigger payloads and fragmented messages
-//                if (index == 1) {
-//                    char masked = byteAsString.charAt(0);
-//                    byte length = Byte.parseByte(byteAsString.substring(1), 2);
-//                    finalLength = length;
-//
-//
-//                    if (length == 126) {
-//                        finalLength = Long.parseLong(toBinaryString(data[index + 1]) + toBinaryString(data[index + 2]), 2);
-//
-//                        index += 2;
-//                    }
-//
-//                    if (length == 127) {
-//                        finalLength = Long.parseLong(toBinaryString(data[index + 1]) + toBinaryString(data[index + 2])
-//                                + toBinaryString(data[index + 3]) + toBinaryString(data[index + 4])
-//                                + toBinaryString(data[index + 5]) + toBinaryString(data[index + 6])
-//                                + toBinaryString(data[index + 7]) + toBinaryString(data[index + 8]), 2);
-//
-//                        index += 8;
-//                    }
-//
-//                    System.out.println("Is masked: " + masked);
-//                    System.out.println("Length: " + finalLength);
-//
-//                    continue;
-//                }
 
             byte[] encoded = new byte[length];
             size = in.read(encoded);
@@ -173,6 +145,51 @@ public class DemoServer {
 
     private static String getOpcode(byte value) {
         return String.format("0x%s", Integer.toHexString(value & 15));
+    }
+
+    //16 bits => max unsigned value: 65535 bytes => 63KB
+    //64 bits => max unsigned value: over 16 million TB :D
+    //We need a message limit
+    //I'm thinking of 500KB, that is an array with over 512,000 indexes
+    private static int getPayloadLength(byte data, InputStream in) throws IOException {
+        int initialLength = data & 127;
+
+        if (initialLength == 127) {
+            byte[] extendedData = new byte[8];
+            int size = in.read(extendedData);
+
+            if (size == -1) {
+                return -1;
+            }
+
+            long value = (Byte.toUnsignedLong(extendedData[0]) << 56)
+                    + (Byte.toUnsignedLong(extendedData[1]) << 48)
+                    + (Byte.toUnsignedLong(extendedData[2]) << 40)
+                    + (Byte.toUnsignedLong(extendedData[3]) << 32)
+                    + (Byte.toUnsignedLong(extendedData[4]) << 24)
+                    + (Byte.toUnsignedLong(extendedData[5]) << 16)
+                    + (Byte.toUnsignedLong(extendedData[6]) << 8)
+                    + (Byte.toUnsignedLong(extendedData[7]));
+
+            if (value > 512000) {
+                return -1;
+            }
+
+            return (int) value;
+        }
+
+        if (initialLength == 126) {
+            byte[] extendedData = new byte[2];
+            int size = in.read(extendedData);
+
+            if (size == -1) {
+                return -1;
+            }
+
+            return (Byte.toUnsignedInt(extendedData[0]) << 8) + Byte.toUnsignedInt(extendedData[1]);
+        }
+
+        return initialLength;
     }
 
     private static String joinArrayToBinaryString(byte[] data, String delimiter) {
