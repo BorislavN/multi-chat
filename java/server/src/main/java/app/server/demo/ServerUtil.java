@@ -14,31 +14,29 @@ import java.util.regex.Pattern;
 //TODO: check the NIO channel documentation for reading and writing, to avoid bugs
 public class ServerUtil {
     //TODO: implement logic
+    private long connectionId;
     private HashMap<String, StringBuilder> fragmentBuffer;
 
     public ServerUtil() {
+        this.connectionId=0;
         this.fragmentBuffer = new HashMap<>();
+    }
+
+    public long getNextId() {
+        return this.connectionId++;
     }
 
     public boolean upgradeConnection(SocketChannel connection) {
         try {
-            ByteBuffer buffer = ByteBuffer.allocate(1024);
+            ByteBuffer buffer = ByteBuffer.allocate(256);
             StringBuilder message = new StringBuilder();
 
-
-            int bytesRead = connection.read(buffer);
-//            //TODO: debug
-//            while (connection.read(buffer) > 0) {
+            while (connection.read(buffer) > 0) {
                 message.append(StandardCharsets.UTF_8.decode(buffer.flip()));
-//                buffer.clear();
-//            }
+                buffer.flip();
+            }
 
-            String request = message.toString().split("\\r\\n\\r\\n")[0];
-
-            System.out.println(message);
-            System.out.println("/////////////////////////////");
-            System.out.println(request);
-
+            String request = message.toString().trim();
             Matcher typeMatcher = Pattern.compile("^GET").matcher(request);
 
             if (typeMatcher.find()) {
@@ -101,7 +99,7 @@ public class ServerUtil {
 
         } catch (IOException e) {
             throw new IllegalStateException(
-                    String.format("An IOException occurred while reading frame metadata - %s%n!", e.getMessage())
+                    String.format("An IOException occurred while reading frame metadata - %s!%n", e.getMessage())
             );
         }
     }

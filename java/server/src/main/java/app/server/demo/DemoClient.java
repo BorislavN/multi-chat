@@ -10,7 +10,6 @@ import java.util.concurrent.CompletionStage;
 //Example from - https://stackoverflow.com/questions/55380813/require-assistance-with-simple-pure-java-11-websocket-client-example
 //Using java.net.http.WebSocket
 public class DemoClient {
-
     public static void main(String[] args) throws Exception {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 

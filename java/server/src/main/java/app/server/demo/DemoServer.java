@@ -6,6 +6,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.Iterator;
 
 /*JS code required:
 const socket = new WebSocket("ws://localhost:80");
@@ -21,9 +22,7 @@ socket.addEventListener("open", (event) => {
 });
 */
 
-//TODO: modify implementation to use ServerSocketChannel
 public class DemoServer {
-
     public static void main(String[] args) throws IOException {
         ServerSocketChannel server = ServerSocketChannel.open();
         server.bind(new InetSocketAddress(80));
@@ -40,45 +39,57 @@ public class DemoServer {
         while (selector.keys().size() > 1 || !receivedConnection) {
             selector.select();
 
-            for (SelectionKey key : selector.selectedKeys()) {
+            Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
+
+            //TODO: If we dont use iterator we get a false positive for OP_ACCEPT, but there is no connection to be accepted
+            while (iterator.hasNext()) {
+                SelectionKey key = iterator.next();
+
                 try {
                     if (key.isValid() && key.isAcceptable()) {
                         SocketChannel connection = server.accept();
 
                         if (connection != null) {
-                            boolean result = util.upgradeConnection(connection);
+                            Attachment attachment = new Attachment(util.getNextId());
+                            connection.configureBlocking(false);
+
+                            connection.register(selector, SelectionKey.OP_READ, attachment);
+
                             receivedConnection = true;
-
-                            if (result) {
-                                connection.configureBlocking(false);
-                                connection.register(selector, SelectionKey.OP_READ);
-                            }
-                        } else {
-
-                            //TODO: why is the key invoked
-                            System.out.println("Why are we here:D");
                         }
                     }
 
                     if (key.isValid() && key.isReadable()) {
                         SocketChannel connection = (SocketChannel) key.channel();
+                        Attachment attachment = (Attachment) key.attachment();
 
-                        FrameData frameData = util.readMetadata(connection);
-                        String message = util.unmaskMessage(connection, frameData.getLength(), frameData.getMask());
+                        if (attachment.wasUpgraded()) {
+                            FrameData frameData = util.readMetadata(connection);
+                            String message = util.unmaskMessage(connection, frameData.getLength(), frameData.getMask());
 
-                        System.out.println(frameData);
-                        System.out.println(message);
-                        System.out.println();
+                            System.out.println(frameData);
+                            System.out.println(message);
+                            System.out.println();
+                        }
+
+                        if (!attachment.wasUpgraded()) {
+                            boolean result = util.upgradeConnection(connection);
+
+                            if (result) {
+                                attachment.setWasUpgraded(true);
+                            }
+                        }
                     }
 
                 } catch (MalformedFrameException | IllegalArgumentException | IllegalStateException e) {
-
                     System.err.println(e.getMessage());
-                    key.cancel();
-                    key.channel().close();
-                }
-            }
 
+                    key.channel().close();
+                    selector.wakeup();
+                }
+
+                iterator.remove();
+            }
         }
 
         //TODO: refactor old nio code, to close channels properly
@@ -88,6 +99,5 @@ public class DemoServer {
         }
 
         selector.close();
-        server.close();
     }
 }
