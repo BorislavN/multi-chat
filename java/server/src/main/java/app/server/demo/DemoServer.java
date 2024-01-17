@@ -45,6 +45,7 @@ public class DemoServer {
             while (iterator.hasNext()) {
                 SelectionKey key = iterator.next();
 
+
                 try {
                     if (key.isValid() && key.isAcceptable()) {
                         SocketChannel connection = server.accept();

@@ -83,8 +83,10 @@ public class ServerUtil {
                 throw new MalformedFrameException("Message not masked!");
             }
 
+            FrameData frameData = new FrameData(isFinished, opcode, isMasked, length);
+
             if (length == 0) {
-                throw new MalformedFrameException("No payload!");
+                return frameData;
             }
 
             buffer = ByteBuffer.allocate(4);
@@ -92,7 +94,6 @@ public class ServerUtil {
 
             this.checkForConnectionClose(bytesRead);
 
-            FrameData frameData = new FrameData(isFinished, opcode, isMasked, length);
             frameData.setMask(buffer.array());
 
             return frameData;

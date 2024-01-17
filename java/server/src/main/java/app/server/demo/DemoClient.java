@@ -13,19 +13,40 @@ public class DemoClient {
     public static void main(String[] args) throws Exception {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
-        WebSocket ws = HttpClient
+        WebSocket client = HttpClient
                 .newHttpClient()
                 .newWebSocketBuilder()
                 .buildAsync(URI.create("ws://localhost:80"), new WebSocketClient())
                 .join();
 
         String message;
+        String username = "";
 
-        while (!"QUIT".equals(message = reader.readLine())) {
-            ws.sendText(message, true);
+        System.out.println("Choose an username:");
+
+        while (username.isBlank()) {
+            username = reader.readLine();
+
+            if (username.isBlank()) {
+                System.out.println("Username cannot be blank!");
+            }
         }
 
-        ws.sendClose(WebSocket.NORMAL_CLOSURE, "User decided to quit");
+        System.out.println("Welcome to the chat!");
+        System.out.println("Enter \"QUIT\" to exit.");
+        System.out.println();
+
+        while (!"QUIT".equals(message = reader.readLine())) {
+            if (message.isBlank()) {
+                System.out.println("Message cannot be blank!");
+
+                continue;
+            }
+
+            client.sendText(String.format("%s: %s", username, message), true);
+        }
+
+        client.sendClose(WebSocket.NORMAL_CLOSURE, "User decided to quit");
     }
 
     private static class WebSocketClient implements WebSocket.Listener {
@@ -34,19 +55,23 @@ public class DemoClient {
 
         @Override
         public void onOpen(WebSocket webSocket) {
-            System.out.println("onOpen using sub-protocol " + webSocket.getSubprotocol());
+            System.out.println("Connection established!");
+            System.out.println("Sub-protocol: " + webSocket.getSubprotocol());
+
             WebSocket.Listener.super.onOpen(webSocket);
         }
 
         @Override
         public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-            System.out.println("onText received " + data);
+            System.out.println("Message received: " + data);
+
             return WebSocket.Listener.super.onText(webSocket, data, last);
         }
 
         @Override
         public void onError(WebSocket webSocket, Throwable error) {
-            System.out.println("Bad day! " + webSocket.toString());
+            System.out.println("Exception occurred: " + error.getMessage());
+
             WebSocket.Listener.super.onError(webSocket, error);
         }
     }
