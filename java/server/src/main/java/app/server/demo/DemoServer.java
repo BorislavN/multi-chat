@@ -22,6 +22,7 @@ socket.addEventListener("open", (event) => {
 });
 */
 
+//TODO: read RFC, implement fragmentation support, ping, pong, close requests, send function
 public class DemoServer {
     public static void main(String[] args) throws IOException {
         ServerSocketChannel server = ServerSocketChannel.open();
@@ -41,10 +42,8 @@ public class DemoServer {
 
             Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
 
-            //TODO: If we dont use iterator we get a false positive for OP_ACCEPT, but there is no connection to be accepted
             while (iterator.hasNext()) {
                 SelectionKey key = iterator.next();
-
 
                 try {
                     if (key.isValid() && key.isAcceptable()) {

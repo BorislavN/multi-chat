@@ -35,14 +35,9 @@ socket.addEventListener("close", (event) => {
 
   this.showLoginError("Connection closed!");
   this.setGreeting("Connection closed!")
-
-  console.log(`Connection closed - code: ${event.code}`);
 });
 
-window.addEventListener("beforeunload", (event) => {
-  document.removeEventListener("keypress", this.onEnter);
-  socket.close();
-});
+window.addEventListener("beforeunload", this.beforeUnload,{ once: true });
 
 document.addEventListener("keydown", this.onEnter);
 
@@ -108,6 +103,14 @@ function onEnter(event) {
   }
 };
 
+function beforeUnload(event) {
+  event.preventDefault();
+
+  document.removeEventListener("keypress", onEnter);
+ 
+  socket.close(1000);
+};
+
 function setGreeting(errorMessage) {
   if (errorMessage) {
     userPane.classList.add("error");
@@ -117,7 +120,7 @@ function setGreeting(errorMessage) {
   }
 
   userPane.classList.remove("error");
-  userPane.textContent = `Welcome, ${currentName}!`
+  userPane.textContent = `Welcome, ${currentName}!`;
 };
 
 function showLoginError(message) {

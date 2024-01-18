@@ -3,13 +3,9 @@ package app.server.demo;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
 import java.util.HashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 //TODO: check the NIO channel documentation for reading and writing, to avoid bugs
 public class ServerUtil {
@@ -18,7 +14,7 @@ public class ServerUtil {
     private HashMap<String, StringBuilder> fragmentBuffer;
 
     public ServerUtil() {
-        this.connectionId=0;
+        this.connectionId = 0;
         this.fragmentBuffer = new HashMap<>();
     }
 
@@ -32,35 +28,31 @@ public class ServerUtil {
             StringBuilder message = new StringBuilder();
 
             while (connection.read(buffer) > 0) {
-                message.append(StandardCharsets.UTF_8.decode(buffer.flip()));
+                message.append(UTF_8.decode(buffer.flip()));
                 buffer.flip();
             }
 
             String request = message.toString().trim();
-            Matcher typeMatcher = Pattern.compile("^GET").matcher(request);
+            String response = FrameBuilder.buildUpgradeResponse(request);
 
-            if (typeMatcher.find()) {
-                Matcher keyMatcher = Pattern.compile("Sec-WebSocket-Key: (.*)").matcher(request);
-                keyMatcher.find();
+            System.out.println(request);
+            System.out.println();
+            System.out.println("\\\\\\\\\\\\\\\\\\\\\\\\\\");
+            System.out.println(response);
 
-                byte[] response = ("HTTP/1.1 101 Switching Protocols\r\n"
-                        + "Connection: Upgrade\r\n"
-                        + "Upgrade: websocket\r\n"
-                        + "Sec-WebSocket-Accept: "
-                        + Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1")
-                        .digest((keyMatcher.group(1) + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").getBytes(StandardCharsets.UTF_8)))
-                        + "\r\n\r\n").getBytes(StandardCharsets.UTF_8);
+            ByteBuffer responseBuffer=ByteBuffer.wrap(response.getBytes(UTF_8));
 
-
-                connection.write(ByteBuffer.wrap(response));
-
-                return connection.isConnected();
-
+            while (responseBuffer.hasRemaining()){
+                connection.write(responseBuffer);
             }
 
-            return false;
+            if (response.startsWith("HTTP/1.1 400")) {
+                return false;
+            }
 
-        } catch (IOException | NoSuchAlgorithmException e) {
+            return connection.isConnected();
+
+        } catch (IOException e) {
             throw new IllegalStateException(
                     String.format("Upgrade attempt failed - %s%n!", e.getMessage())
             );
@@ -84,10 +76,6 @@ public class ServerUtil {
             }
 
             FrameData frameData = new FrameData(isFinished, opcode, isMasked, length);
-
-            if (length == 0) {
-                return frameData;
-            }
 
             buffer = ByteBuffer.allocate(4);
             bytesRead = connection.read(buffer);
@@ -141,7 +129,7 @@ public class ServerUtil {
     //16 bits => max unsigned value: 65535 bytes => 63KB
     //64 bits => max unsigned value: over 16 million TB :D
     //We need a message limit
-    //I'm thinking of 500KB, that is an array with over 512,000 indexes
+    //I'm thinking of 100KB, that is an array with over 102,400 indexes
     private int getPayloadLength(byte data, SocketChannel connection) throws IOException {
         int initialLength = data & 127;
         ByteBuffer extendedData;
@@ -162,8 +150,8 @@ public class ServerUtil {
                     + (Byte.toUnsignedLong(extendedData.get(7)));
 
             //TODO: choose better limit
-            if (value > 512000) {
-                throw new IllegalArgumentException("Message too long - limit: 512000");
+            if (value > 102400) {
+                throw new IllegalArgumentException("Message too long - limit: 102400");
             }
 
             return (int) value;
@@ -188,6 +176,6 @@ public class ServerUtil {
             decoded[i] = (byte) (encoded[i] ^ mask[i % 4]);
         }
 
-        return new String(decoded, StandardCharsets.UTF_8);
+        return new String(decoded, UTF_8);
     }
 }

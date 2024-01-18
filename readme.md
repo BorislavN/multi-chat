@@ -10,5 +10,5 @@ While it does work, it seems like black magic to say the least.
 So, I decided to create this repository.
 Here I will try to implement a cross-platform chat,
 one that enables both JavaScript and JavaFX clients to communicate using WebSocket protocol.
-In the "minimal" packages you will find a plain java implementations.
+In the "minimal" packages you will find plain java implementations.
 In the "proper" packages - implementations using the Jakarta WebSocket API.
