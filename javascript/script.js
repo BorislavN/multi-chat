@@ -15,6 +15,8 @@ const socket = new WebSocket("ws://localhost:80");
 
 socket.addEventListener("open", (event) => {
   joinBtn.disabled = false;
+
+  window.addEventListener("beforeunload", this.beforeUnload, { once: true });
 });
 
 socket.addEventListener("message", (event) => {
@@ -28,6 +30,10 @@ socket.addEventListener("error", (event) => {
   this.setGreeting("Exception occurred!")
 
   console.log(`Exception occurred!`);
+
+  if (event.target.readyState === 3) {
+    console.log("Connection closed!");
+  }
 });
 
 socket.addEventListener("close", (event) => {
@@ -36,8 +42,6 @@ socket.addEventListener("close", (event) => {
   this.showLoginError("Connection closed!");
   this.setGreeting("Connection closed!")
 });
-
-window.addEventListener("beforeunload", this.beforeUnload,{ once: true });
 
 document.addEventListener("keydown", this.onEnter);
 
@@ -107,7 +111,7 @@ function beforeUnload(event) {
   event.preventDefault();
 
   document.removeEventListener("keypress", onEnter);
- 
+
   socket.close(1000);
 };
 

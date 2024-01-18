@@ -27,22 +27,21 @@ public class ServerUtil {
             ByteBuffer buffer = ByteBuffer.allocate(256);
             StringBuilder message = new StringBuilder();
 
-            while (connection.read(buffer) > 0) {
+            int bytesRead = connection.read(buffer);
+
+            this.checkForConnectionClose(bytesRead);
+
+            do {
                 message.append(UTF_8.decode(buffer.flip()));
                 buffer.flip();
-            }
+            } while (connection.read(buffer) > 0);
 
             String request = message.toString().trim();
             String response = FrameBuilder.buildUpgradeResponse(request);
 
-            System.out.println(request);
-            System.out.println();
-            System.out.println("\\\\\\\\\\\\\\\\\\\\\\\\\\");
-            System.out.println(response);
+            ByteBuffer responseBuffer = ByteBuffer.wrap(response.getBytes(UTF_8));
 
-            ByteBuffer responseBuffer=ByteBuffer.wrap(response.getBytes(UTF_8));
-
-            while (responseBuffer.hasRemaining()){
+            while (responseBuffer.hasRemaining()) {
                 connection.write(responseBuffer);
             }
 
@@ -114,7 +113,7 @@ public class ServerUtil {
 
     private void checkForConnectionClose(int bytesRead) {
         if (bytesRead == -1) {
-            throw new IllegalStateException("Connection closed while attempting to read metadata!");
+            throw new IllegalStateException("Connection was closed unexpectedly!");
         }
     }
 

@@ -77,7 +77,10 @@ public class DemoServer {
 
                             if (result) {
                                 attachment.setWasUpgraded(true);
+                                continue;
                             }
+
+                            selector.wakeup();
                         }
                     }
 

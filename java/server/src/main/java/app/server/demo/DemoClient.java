@@ -70,7 +70,7 @@ public class DemoClient {
 
         @Override
         public void onError(WebSocket webSocket, Throwable error) {
-            System.out.println("Exception occurred: " + error.getMessage());
+            System.err.println("Exception occurred: " + error.getMessage());
 
             WebSocket.Listener.super.onError(webSocket, error);
         }

@@ -10,10 +10,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class FrameBuilder {
     public static String buildUpgradeResponse(String request) {
-        String badRequestHeader = "HTTP/1.1 400 Bad Request";
-        String supportedVersionHeader = "Sec-WebSocket-Version: 13";
-        String contentTypeHeader = "Content-Type: text/plain";
-
         boolean isGetRequest = request.startsWith("GET");
 
         String error = "";
@@ -28,16 +24,16 @@ public class FrameBuilder {
                 Pattern regex = Pattern.compile("Connection: (?<connection>.*)|Upgrade: (?<upgrade>.*)|Sec-WebSocket-Key: (?<key>.*)|Sec-WebSocket-Version: (?<version>\\d+)");
                 Matcher matcher = regex.matcher(request);
 
-                String connectionHeader =null;
+                String connectionHeader = null;
                 String upgradeHeader = null;
                 String keyHeader = null;
                 String versionHeader = null;
 
-                while (matcher.find()){
-                    connectionHeader = matcher.group("connection")!=null? matcher.group("connection") : connectionHeader;
-                    upgradeHeader = matcher.group("upgrade")!=null? matcher.group("upgrade") : upgradeHeader;
-                    keyHeader = matcher.group("key")!=null? matcher.group("key") : keyHeader;
-                    versionHeader = matcher.group("version")!=null? matcher.group("version") : versionHeader;
+                while (matcher.find()) {
+                    connectionHeader = matcher.group("connection") != null ? matcher.group("connection") : connectionHeader;
+                    upgradeHeader = matcher.group("upgrade") != null ? matcher.group("upgrade") : upgradeHeader;
+                    keyHeader = matcher.group("key") != null ? matcher.group("key") : keyHeader;
+                    versionHeader = matcher.group("version") != null ? matcher.group("version") : versionHeader;
                 }
 
                 if (validateMatches(connectionHeader, upgradeHeader, keyHeader, versionHeader)) {
@@ -54,7 +50,7 @@ public class FrameBuilder {
                             , connectionHeader
                             , upgradeHeader
                             , websocketAcceptHeader
-                            , "");
+                            , System.lineSeparator());
                 }
 
                 error = "Verify that your request contains these headers: \"Upgrade: websocket\", \"Connection: Upgrade\", \"Sec-WebSocket-Key\", \"Sec-WebSocket-Version\"";
@@ -64,6 +60,9 @@ public class FrameBuilder {
             }
         }
 
+        String badRequestHeader = "HTTP/1.1 400 Bad Request";
+        String supportedVersionHeader = "Sec-WebSocket-Version: 13";
+        String contentTypeHeader = "Content-Type: text/plain";
         String contentLengthHeader = String.format("Content-Length: %d", error.getBytes(UTF_8).length);
 
         return String.join(System.lineSeparator()
