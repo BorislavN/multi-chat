@@ -18,7 +18,7 @@ socket.addEventListener("open", (event) => {
   socket.send("Sample message 2");
   socket.send("Sample message 3");
 
-  setTimeout(()=>socket.close(), 1500);
+  setTimeout(()=>socket.close(1000), 1500);
 });
 */
 
@@ -52,10 +52,9 @@ public class DemoServer {
                         if (connection != null) {
                             Attachment attachment = new Attachment(util.getNextId());
                             connection.configureBlocking(false);
+                            receivedConnection = true;
 
                             connection.register(selector, SelectionKey.OP_READ, attachment);
-
-                            receivedConnection = true;
                         }
                     }
 
@@ -77,10 +76,7 @@ public class DemoServer {
 
                             if (result) {
                                 attachment.setWasUpgraded(true);
-                                continue;
                             }
-
-                            selector.wakeup();
                         }
                     }
 
@@ -97,7 +93,6 @@ public class DemoServer {
 
         //TODO: refactor old nio code, to close channels properly
         for (SelectionKey key : selector.keys()) {
-            key.cancel();
             key.channel().close();
         }
 

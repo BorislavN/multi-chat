@@ -1,16 +1,66 @@
 package app.server.demo;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-//TODO: implement proper read/write methods
-public class ChannelHelper {
-    public static String readMessage(SocketChannel connection){
+import static java.nio.charset.StandardCharsets.UTF_8;
 
-        return "";
+public class ChannelHelper {
+
+    public static String readAllBytes(SocketChannel connection) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(256);
+        StringBuilder message = new StringBuilder();
+
+        int bytesRead;
+
+        while ((bytesRead = connection.read(buffer)) > 0) {
+            message.append(UTF_8.decode(buffer.flip()));
+            buffer.flip();
+        }
+
+        if (bytesRead == -1) {
+            throw new IllegalStateException("Connection closed!");
+        }
+
+        if (message.isEmpty()) {
+            throw new IllegalStateException("No bytes could be read from connection - "+connection.getRemoteAddress());
+        }
+
+        return message.toString();
     }
 
-    public static int writeMessage(SocketChannel connection,String message){
+    public static ByteBuffer readBytes(SocketChannel connection, int bytes) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(bytes);
 
-        return 0;
+        int bytesRead;
+
+        while (buffer.hasRemaining()) {
+            bytesRead = connection.read(buffer);
+
+            if (bytesRead == -1) {
+                throw new IllegalStateException("Connection closed!");
+            }
+
+            if (bytesRead == 0) {
+                throw new IllegalStateException("Next frame chunk could not be read!");
+            }
+        }
+
+        return buffer.flip();
+    }
+
+    public static void writeMessage(SocketChannel connection, String message) throws IOException {
+        ByteBuffer buffer = ByteBuffer.wrap(message.getBytes(UTF_8));
+
+        int bytesWritten;
+
+        while (buffer.hasRemaining()) {
+            bytesWritten = connection.write(buffer);
+
+            if (bytesWritten == -1) {
+                throw new IllegalStateException("Connection closed!");
+            }
+        }
     }
 }

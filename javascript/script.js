@@ -16,7 +16,7 @@ const socket = new WebSocket("ws://localhost:80");
 socket.addEventListener("open", (event) => {
   joinBtn.disabled = false;
 
-  window.addEventListener("beforeunload", this.beforeUnload, { once: true });
+  window.addEventListener("beforeunload", this.beforeUnload);
 });
 
 socket.addEventListener("message", (event) => {
@@ -110,9 +110,10 @@ function onEnter(event) {
 function beforeUnload(event) {
   event.preventDefault();
 
-  document.removeEventListener("keypress", onEnter);
-
-  socket.close(1000);
+  if(window.confirm()){
+    document.removeEventListener("keypress", onEnter);
+    socket.close(1000);
+  }
 };
 
 function setGreeting(errorMessage) {

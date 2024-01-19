@@ -7,9 +7,7 @@ import java.util.HashMap;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-//TODO: check the NIO channel documentation for reading and writing, to avoid bugs
 public class ServerUtil {
-    //TODO: implement logic
     private long connectionId;
     private HashMap<String, StringBuilder> fragmentBuffer;
 
@@ -24,26 +22,11 @@ public class ServerUtil {
 
     public boolean upgradeConnection(SocketChannel connection) {
         try {
-            ByteBuffer buffer = ByteBuffer.allocate(256);
-            StringBuilder message = new StringBuilder();
+            String request = ChannelHelper.readAllBytes(connection);
+            request = request.trim();
 
-            int bytesRead = connection.read(buffer);
-
-            this.checkForConnectionClose(bytesRead);
-
-            do {
-                message.append(UTF_8.decode(buffer.flip()));
-                buffer.flip();
-            } while (connection.read(buffer) > 0);
-
-            String request = message.toString().trim();
             String response = FrameBuilder.buildUpgradeResponse(request);
-
-            ByteBuffer responseBuffer = ByteBuffer.wrap(response.getBytes(UTF_8));
-
-            while (responseBuffer.hasRemaining()) {
-                connection.write(responseBuffer);
-            }
+            ChannelHelper.writeMessage(connection, response);
 
             if (response.startsWith("HTTP/1.1 400")) {
                 return false;
@@ -60,10 +43,7 @@ public class ServerUtil {
 
     public FrameData readMetadata(SocketChannel connection) {
         try {
-            ByteBuffer buffer = ByteBuffer.allocate(2);
-            int bytesRead = connection.read(buffer);
-
-            this.checkForConnectionClose(bytesRead);
+            ByteBuffer buffer = ChannelHelper.readBytes(connection, 2);
 
             boolean isFinished = getMostSignificantBit(buffer.get(0));
             String opcode = getOpcode(buffer.get(0));
@@ -74,13 +54,9 @@ public class ServerUtil {
                 throw new MalformedFrameException("Message not masked!");
             }
 
+            buffer = ChannelHelper.readBytes(connection, 4);
+
             FrameData frameData = new FrameData(isFinished, opcode, isMasked, length);
-
-            buffer = ByteBuffer.allocate(4);
-            bytesRead = connection.read(buffer);
-
-            this.checkForConnectionClose(bytesRead);
-
             frameData.setMask(buffer.array());
 
             return frameData;
@@ -97,23 +73,14 @@ public class ServerUtil {
     // while the JS implementation sends the whole thing
     public String unmaskMessage(SocketChannel connection, int length, byte[] mask) {
         try {
-            ByteBuffer encoded = ByteBuffer.allocate(length);
-            int bytesRead = connection.read(encoded);
+            ByteBuffer encodedBuffer = ChannelHelper.readBytes(connection, length);
 
-            this.checkForConnectionClose(bytesRead);
-
-            return decodePayload(encoded.array(), mask);
+            return decodePayload(encodedBuffer.array(), mask);
 
         } catch (IOException ex) {
             throw new IllegalStateException(
                     String.format("An IOException occurred while reading payload - %s%n!", ex.getMessage())
             );
-        }
-    }
-
-    private void checkForConnectionClose(int bytesRead) {
-        if (bytesRead == -1) {
-            throw new IllegalStateException("Connection was closed unexpectedly!");
         }
     }
 
@@ -134,10 +101,7 @@ public class ServerUtil {
         ByteBuffer extendedData;
 
         if (initialLength == 127) {
-            extendedData = ByteBuffer.allocate(8);
-            int bytesRead = connection.read(extendedData);
-
-            this.checkForConnectionClose(bytesRead);
+            extendedData = ChannelHelper.readBytes(connection,8);
 
             long value = (Byte.toUnsignedLong(extendedData.get(0)) << 56)
                     + (Byte.toUnsignedLong(extendedData.get(1)) << 48)
@@ -157,10 +121,7 @@ public class ServerUtil {
         }
 
         if (initialLength == 126) {
-            extendedData = ByteBuffer.allocate(2);
-            int bytesRead = connection.read(extendedData);
-
-            this.checkForConnectionClose(bytesRead);
+            extendedData = ChannelHelper.readBytes(connection,2);
 
             return (Byte.toUnsignedInt(extendedData.get(0)) << 8) + Byte.toUnsignedInt(extendedData.get(1));
         }
