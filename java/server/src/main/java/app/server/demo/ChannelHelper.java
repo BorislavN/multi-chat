@@ -24,7 +24,9 @@ public class ChannelHelper {
         }
 
         if (message.isEmpty()) {
-            throw new IllegalStateException("No bytes could be read from connection - "+connection.getRemoteAddress());
+            throw new IllegalStateException(
+                    String.format("No bytes could be read from connection - %s", connection.getRemoteAddress())
+            );
         }
 
         return message.toString();
@@ -53,14 +55,22 @@ public class ChannelHelper {
     public static void writeMessage(SocketChannel connection, String message) throws IOException {
         ByteBuffer buffer = ByteBuffer.wrap(message.getBytes(UTF_8));
 
-        int bytesWritten;
+        for (int attempts = 0; attempts < 5; attempts++) {
+            if (!buffer.hasRemaining()) {
+               return;
+            }
 
-        while (buffer.hasRemaining()) {
-            bytesWritten = connection.write(buffer);
+            int bytesWritten = connection.write(buffer);
 
             if (bytesWritten == -1) {
                 throw new IllegalStateException("Connection closed!");
             }
+        }
+
+        if (buffer.hasRemaining()) {
+            throw new IllegalStateException(
+                    String.format("Write attempt limit reached - %s", connection.getRemoteAddress())
+            );
         }
     }
 }

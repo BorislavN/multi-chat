@@ -9,6 +9,7 @@ import java.util.concurrent.CompletionStage;
 
 //Example from - https://stackoverflow.com/questions/55380813/require-assistance-with-simple-pure-java-11-websocket-client-example
 //Using java.net.http.WebSocket
+
 public class DemoClient {
     public static void main(String[] args) throws Exception {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
@@ -56,7 +57,6 @@ public class DemoClient {
         @Override
         public void onOpen(WebSocket webSocket) {
             System.out.println("Connection established!");
-            System.out.println("Sub-protocol: " + webSocket.getSubprotocol());
 
             WebSocket.Listener.super.onOpen(webSocket);
         }
@@ -73,6 +73,12 @@ public class DemoClient {
             System.err.println("Exception occurred: " + error.getMessage());
 
             WebSocket.Listener.super.onError(webSocket, error);
+        }
+
+        @Override
+        public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
+            //TODO:implement a way for the client to wait for server close acknowledgment, before exiting the application
+            return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
         }
     }
 }
