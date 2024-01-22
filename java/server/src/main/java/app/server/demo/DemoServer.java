@@ -67,11 +67,14 @@ public class DemoServer {
                             FrameData frameData = util.readMetadata(connection);
                             String message = util.unmaskMessage(connection, frameData.getLength(), frameData.getMask());
 
-//                            System.out.println(frameData);
+//                          System.out.println(frameData);
                             System.out.println(message);
                             System.out.println();
 
-                            ChannelHelper.writeBytes(connection, FrameBuilder.buildFrame("Proba, proba, 1 2 3...", true, 1));
+                            //Echo message back
+                            //TODO: see why "QUIT" fails
+                            ByteBuffer responseFrame = FrameBuilder.buildFrame(message, frameData.isFinished(), frameData.getOpcode());
+                            ChannelHelper.writeBytes(connection, responseFrame);
                         }
 
                         if (!attachment.wasUpgraded()) {

@@ -5,12 +5,18 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 //Example from - https://stackoverflow.com/questions/55380813/require-assistance-with-simple-pure-java-11-websocket-client-example
 //Using java.net.http.WebSocket
 
 public class DemoClient {
+    private static volatile boolean closeInitiated = false;
+    private static final Object lock = new Object();
+
     public static void main(String[] args) throws Exception {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
@@ -47,11 +53,29 @@ public class DemoClient {
             client.sendText(String.format("%s: %s", username, message), true);
         }
 
+        synchronized (lock){
+            closeInitiated = true;
+            client.sendClose(WebSocket.NORMAL_CLOSURE, "User decided to quit").thenRun(closeHandler(client));
 
-        client.sendClose(WebSocket.NORMAL_CLOSURE, "User decided to quit");
-        //TODO: implement a way to wait for sever acknowledgment before exiting the application
-        //client.sendClose(WebSocket.NORMAL_CLOSURE, "User decided to quit").thenRun(function waiting 30 seconds and then aborting);
+            lock.wait(35000);
+        }
+    }
 
+    private static Runnable closeHandler(WebSocket client) {
+        return () -> {
+            TimerTask timerTask = new TimerTask() {
+                @Override
+                public void run() {
+                    synchronized (lock){
+                        client.abort();
+                        lock.notify();
+                    }
+                }
+            };
+
+            Timer timer = new Timer();
+            timer.schedule(timerTask, 25000);
+        };
     }
 
     private static class WebSocketClient implements WebSocket.Listener {
@@ -77,6 +101,25 @@ public class DemoClient {
             System.err.println("Exception occurred: " + error.getMessage());
 
             WebSocket.Listener.super.onError(webSocket, error);
+        }
+
+        @Override
+        public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
+            if (!closeInitiated) {
+                CompletableFuture<Object> temp = new CompletableFuture<>();
+                temp.completeExceptionally(new IllegalStateException("Unexpected - Server initiated close handshake!"));
+
+                webSocket.abort();
+
+                return temp;
+            }
+
+            synchronized (lock){
+                webSocket.abort();
+                lock.notify();
+            }
+
+            return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
         }
     }
 }

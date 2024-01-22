@@ -46,7 +46,7 @@ public class ServerUtil {
             ByteBuffer buffer = ChannelHelper.readBytes(connection, 2);
 
             boolean isFinished = getMostSignificantBit(buffer.get(0));
-            String opcode = getOpcode(buffer.get(0));
+            int opcode = getOpcode(buffer.get(0));
             boolean isMasked = getMostSignificantBit(buffer.get(1));
             int length = getPayloadLength(buffer.get(1), connection);
 
@@ -88,8 +88,8 @@ public class ServerUtil {
         return (value & 128) == 128;
     }
 
-    private String getOpcode(byte value) {
-        return String.format("0x%s", Integer.toHexString(value & 15));
+    private int getOpcode(byte value) {
+        return value & 15;
     }
 
     //16 bits => max unsigned value: 65535 bytes => 63KB
