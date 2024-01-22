@@ -26,7 +26,7 @@ public class ServerUtil {
             request = request.trim();
 
             String response = FrameBuilder.buildUpgradeResponse(request);
-            ChannelHelper.writeMessage(connection, response);
+            ChannelHelper.writeBytes(connection, ByteBuffer.wrap(response.getBytes(UTF_8)));
 
             if (response.startsWith("HTTP/1.1 400")) {
                 return false;
@@ -101,7 +101,7 @@ public class ServerUtil {
         ByteBuffer extendedData;
 
         if (initialLength == 127) {
-            extendedData = ChannelHelper.readBytes(connection,8);
+            extendedData = ChannelHelper.readBytes(connection, 8);
 
             long value = (Byte.toUnsignedLong(extendedData.get(0)) << 56)
                     + (Byte.toUnsignedLong(extendedData.get(1)) << 48)
@@ -121,7 +121,7 @@ public class ServerUtil {
         }
 
         if (initialLength == 126) {
-            extendedData = ChannelHelper.readBytes(connection,2);
+            extendedData = ChannelHelper.readBytes(connection, 2);
 
             return (Byte.toUnsignedInt(extendedData.get(0)) << 8) + Byte.toUnsignedInt(extendedData.get(1));
         }

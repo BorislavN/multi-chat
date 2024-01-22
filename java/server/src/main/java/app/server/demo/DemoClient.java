@@ -47,7 +47,11 @@ public class DemoClient {
             client.sendText(String.format("%s: %s", username, message), true);
         }
 
+
         client.sendClose(WebSocket.NORMAL_CLOSURE, "User decided to quit");
+        //TODO: implement a way to wait for sever acknowledgment before exiting the application
+        //client.sendClose(WebSocket.NORMAL_CLOSURE, "User decided to quit").thenRun(function waiting 30 seconds and then aborting);
+
     }
 
     private static class WebSocketClient implements WebSocket.Listener {
@@ -73,12 +77,6 @@ public class DemoClient {
             System.err.println("Exception occurred: " + error.getMessage());
 
             WebSocket.Listener.super.onError(webSocket, error);
-        }
-
-        @Override
-        public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
-            //TODO:implement a way for the client to wait for server close acknowledgment, before exiting the application
-            return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
         }
     }
 }

@@ -2,6 +2,7 @@ package app.server.demo;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -66,9 +67,11 @@ public class DemoServer {
                             FrameData frameData = util.readMetadata(connection);
                             String message = util.unmaskMessage(connection, frameData.getLength(), frameData.getMask());
 
-                            System.out.println(frameData);
+//                            System.out.println(frameData);
                             System.out.println(message);
                             System.out.println();
+
+                            ChannelHelper.writeBytes(connection, FrameBuilder.buildFrame("Proba, proba, 1 2 3...", true, 1));
                         }
 
                         if (!attachment.wasUpgraded()) {

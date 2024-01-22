@@ -1,5 +1,6 @@
 package app.server.demo;
 
+import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -66,10 +67,44 @@ public class FrameBuilder {
         return "";
     }
 
-    public static String buildMessageFrame(String request) {
+    public static ByteBuffer buildFrame(String message, boolean isFinished, int opcode) {
+        ByteBuffer frame;
+
+        byte firstByte = (byte) opcode;
+
+        if (isFinished) {
+            firstByte |= (byte) 0b10000000;
+        }
+
+        if (message.length() > 65535) {
+            frame = ByteBuffer.allocate(10+message.length());
+
+            frame.put(0,firstByte);
+            frame.put(1,(byte) 127);
+            frame.put(2, splitLengthToBytes(8,message.length()));
+            frame.put(3,message.getBytes(UTF_8));
+
+            return frame;
+        }
+
+        if (message.length() > 125) {
+            frame = ByteBuffer.allocate(4+message.length());
+
+            frame.put(0,firstByte);
+            frame.put(1,(byte) 126);
+            frame.put(2, splitLengthToBytes(2,message.length()));
+            frame.put(3,message.getBytes(UTF_8));
+
+            return frame;
+        }
 
 
-        return "";
+        frame = ByteBuffer.allocate(2+message.length());
+        frame.put(0,firstByte);
+        frame.put(1,(byte) message.length());
+        frame.put(2,message.getBytes(UTF_8));
+
+        return frame;
     }
 
     private static String validateHeaders(String request) {
@@ -118,5 +153,20 @@ public class FrameBuilder {
                 , contentLengthHeader
                 , ""
                 , error);
+    }
+
+    private static byte[] splitLengthToBytes(int parts, int length) {
+        byte[] bytes = new byte[parts];
+        int step = 0;
+
+        if (parts > 8) {
+            throw new IllegalArgumentException("Part limit - 8 bytes! (64bit)");
+        }
+
+        for (int index = bytes.length-1; index >= 0; index--, step += 8) {
+            bytes[index] = (byte) (length >> step);
+        }
+
+        return bytes;
     }
 }

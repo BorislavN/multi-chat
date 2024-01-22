@@ -15,8 +15,6 @@ const socket = new WebSocket("ws://localhost:80");
 
 socket.addEventListener("open", (event) => {
   joinBtn.disabled = false;
-
-  window.addEventListener("beforeunload", this.beforeUnload);
 });
 
 socket.addEventListener("message", (event) => {
@@ -104,15 +102,6 @@ function onEnter(event) {
 
   if ("messageField" === active.id) {
     sendBtn.click();
-  }
-};
-
-function beforeUnload(event) {
-  event.preventDefault();
-
-  if(window.confirm()){
-    document.removeEventListener("keypress", onEnter);
-    socket.close(1000);
   }
 };
 

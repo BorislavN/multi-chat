@@ -52,9 +52,7 @@ public class ChannelHelper {
         return buffer.flip();
     }
 
-    public static void writeMessage(SocketChannel connection, String message) throws IOException {
-        ByteBuffer buffer = ByteBuffer.wrap(message.getBytes(UTF_8));
-
+    public static void writeBytes(SocketChannel connection, ByteBuffer buffer) throws IOException {
         for (int attempts = 0; attempts < 5; attempts++) {
             if (!buffer.hasRemaining()) {
                return;
