@@ -3,17 +3,15 @@ package app.server.demo;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.HashMap;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+//TODO: extract max message limit, max fragmented message limit to private fields
 public class ServerUtil {
     private long connectionId;
-    private HashMap<String, StringBuilder> fragmentBuffer;
 
     public ServerUtil() {
         this.connectionId = 0;
-        this.fragmentBuffer = new HashMap<>();
     }
 
     public long getNextId() {
@@ -68,14 +66,24 @@ public class ServerUtil {
         }
     }
 
-    //TODO: implement logic fragmented messages
-    // the java WebSocket Client has same sort of internal buffer, and sends the long messages as few fragmented ones - ignoring the finished flag
-    // while the JS implementation sends the whole thing
-    public String unmaskMessage(SocketChannel connection, int length, byte[] mask) {
+    public String unmaskMessage(SocketChannel connection, FrameData frameData) {
         try {
-            ByteBuffer encodedBuffer = ChannelHelper.readBytes(connection, length);
+            ByteBuffer encodedBuffer = ChannelHelper.readBytes(connection, frameData.getLength());
+            byte[] decoded = decodePayload(encodedBuffer.array(), frameData.getMask());
 
-            return decodePayload(encodedBuffer.array(), mask);
+            String message = new String(decoded, UTF_8);
+
+            if (frameData.getOpcode() == 8) {
+                int statusCode = ((decoded[0] & 255) << 8) + (decoded[1] & 255);
+
+                if (message.length() > 2) {
+                    return String.format("%d, %s", statusCode, message.substring(2));
+                }
+
+                return String.valueOf(statusCode);
+            }
+
+            return message;
 
         } catch (IOException ex) {
             throw new IllegalStateException(
@@ -129,13 +137,13 @@ public class ServerUtil {
         return initialLength;
     }
 
-    private String decodePayload(byte[] encoded, byte[] mask) {
+    private byte[] decodePayload(byte[] encoded, byte[] mask) {
         byte[] decoded = new byte[encoded.length];
 
         for (int i = 0; i < encoded.length; i++) {
             decoded[i] = (byte) (encoded[i] ^ mask[i % 4]);
         }
 
-        return new String(decoded, UTF_8);
+        return decoded;
     }
 }

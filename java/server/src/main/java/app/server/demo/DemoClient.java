@@ -53,12 +53,14 @@ public class DemoClient {
             client.sendText(String.format("%s: %s", username, message), true);
         }
 
-        synchronized (lock){
+        synchronized (lock) {
             closeInitiated = true;
             client.sendClose(WebSocket.NORMAL_CLOSURE, "User decided to quit").thenRun(closeHandler(client));
 
-            lock.wait(35000);
+            lock.wait(10000);
+            System.out.println();
         }
+        System.out.println();
     }
 
     private static Runnable closeHandler(WebSocket client) {
@@ -66,7 +68,7 @@ public class DemoClient {
             TimerTask timerTask = new TimerTask() {
                 @Override
                 public void run() {
-                    synchronized (lock){
+                    synchronized (lock) {
                         client.abort();
                         lock.notify();
                     }
@@ -74,7 +76,7 @@ public class DemoClient {
             };
 
             Timer timer = new Timer();
-            timer.schedule(timerTask, 25000);
+            timer.schedule(timerTask, 8000);
         };
     }
 
@@ -98,23 +100,27 @@ public class DemoClient {
 
         @Override
         public void onError(WebSocket webSocket, Throwable error) {
-            System.err.println("Exception occurred: " + error.getMessage());
+            Logger.logError("Exception occurred",error);
 
             WebSocket.Listener.super.onError(webSocket, error);
         }
 
         @Override
         public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
+            System.out.println("On close...");
+
+            synchronized (lock) {
             if (!closeInitiated) {
                 CompletableFuture<Object> temp = new CompletableFuture<>();
                 temp.completeExceptionally(new IllegalStateException("Unexpected - Server initiated close handshake!"));
 
                 webSocket.abort();
+                lock.notify();
 
                 return temp;
             }
 
-            synchronized (lock){
+
                 webSocket.abort();
                 lock.notify();
             }

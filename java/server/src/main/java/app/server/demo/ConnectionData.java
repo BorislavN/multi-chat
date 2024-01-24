@@ -1,24 +1,27 @@
 package app.server.demo;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 
-public class Attachment {
+public class ConnectionData {
     private long connectionId;
     private String username;
     private boolean wasUpgraded;
     private boolean receivedPing;
     private boolean receivedClose;
+    private final List<StringBuilder> fragments;
+    private final Deque<String> waitingMessages;
 
-    private Deque<String> waitingMessages;
-
-    public Attachment(long connectionId) {
+    public ConnectionData(long connectionId) {
         this.connectionId = connectionId;
         this.username = null;
         this.wasUpgraded = false;
         this.receivedPing = false;
         this.receivedClose = false;
         this.waitingMessages = new ArrayDeque<>();
+        this.fragments = new ArrayList<>();
     }
 
     public long getConnectionId() {
@@ -61,11 +64,18 @@ public class Attachment {
         this.receivedClose = receivedClose;
     }
 
+    //TODO: implement
     public String pollMessage() {
         return this.waitingMessages.poll();
     }
 
+    //TODO: implement
     public void enqueueMessage(String message) {
         this.waitingMessages.offer(message);
+    }
+
+    //TODO: implement
+    public List<StringBuilder> getFragments() {
+        return this.fragments;
     }
 }

@@ -11,7 +11,7 @@ public class FrameBuilder {
     public static String buildUpgradeResponse(String request) {
         boolean isGetRequest = request.startsWith("GET");
 
-        String error = "";
+        String error ;
 
         if (!isGetRequest) {
             error = "Not a valid upgrade request, request must use HTTP \"GET\" method!";
@@ -77,32 +77,42 @@ public class FrameBuilder {
         }
 
         if (message.length() > 65535) {
-            frame = ByteBuffer.allocate(10+message.length());
+            frame = ByteBuffer.allocate(10 + message.length());
 
-            frame.put(0,firstByte);
-            frame.put(1,(byte) 127);
-            frame.put(2, splitLengthToBytes(8,message.length()));
-            frame.put(3,message.getBytes(UTF_8));
+            frame.put(0, firstByte);
+            frame.put(1, (byte) 127);
+            frame.put(2, splitLengthToBytes(8, message.length()));
+            frame.put(3, message.getBytes(UTF_8));
 
             return frame;
         }
 
         if (message.length() > 125) {
-            frame = ByteBuffer.allocate(4+message.length());
+            frame = ByteBuffer.allocate(4 + message.length());
 
-            frame.put(0,firstByte);
-            frame.put(1,(byte) 126);
-            frame.put(2, splitLengthToBytes(2,message.length()));
-            frame.put(3,message.getBytes(UTF_8));
+            frame.put(0, firstByte);
+            frame.put(1, (byte) 126);
+            frame.put(2, splitLengthToBytes(2, message.length()));
+            frame.put(3, message.getBytes(UTF_8));
 
             return frame;
         }
 
+        if (message.isBlank()) {
+            frame = ByteBuffer.allocate(4);
 
-        frame = ByteBuffer.allocate(2+message.length());
-        frame.put(0,firstByte);
-        frame.put(1,(byte) message.length());
-        frame.put(2,message.getBytes(UTF_8));
+            frame.put(0, firstByte);
+            frame.put(1, (byte) 2);
+            frame.put(2, (byte) 0b011);
+            frame.put(3, (byte) 0b11101000);
+
+            return frame;
+        }
+
+        frame = ByteBuffer.allocate(2 + message.length());
+        frame.put(0, firstByte);
+        frame.put(1, (byte) message.length());
+        frame.put(2, message.getBytes(UTF_8));
 
         return frame;
     }
@@ -163,7 +173,7 @@ public class FrameBuilder {
             throw new IllegalArgumentException("Part limit - 8 bytes! (64bit)");
         }
 
-        for (int index = bytes.length-1; index >= 0; index--, step += 8) {
+        for (int index = bytes.length - 1; index >= 0; index--, step += 8) {
             bytes[index] = (byte) (length >> step);
         }
 
