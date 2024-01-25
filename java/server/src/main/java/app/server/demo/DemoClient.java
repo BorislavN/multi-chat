@@ -15,7 +15,7 @@ import java.util.concurrent.CompletionStage;
 
 public class DemoClient {
     private static volatile boolean closeInitiated = false;
-    private static final Object lock = new Object();
+    private static final Timer timer = new Timer();
 
     public static void main(String[] args) throws Exception {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
@@ -53,14 +53,9 @@ public class DemoClient {
             client.sendText(String.format("%s: %s", username, message), true);
         }
 
-        synchronized (lock) {
-            closeInitiated = true;
-            client.sendClose(WebSocket.NORMAL_CLOSURE, "User decided to quit").thenRun(closeHandler(client));
 
-            lock.wait(10000);
-            System.out.println();
-        }
-        System.out.println();
+        closeInitiated = true;
+        client.sendClose(3000, "TEST").thenRun(closeHandler(client));
     }
 
     private static Runnable closeHandler(WebSocket client) {
@@ -68,15 +63,14 @@ public class DemoClient {
             TimerTask timerTask = new TimerTask() {
                 @Override
                 public void run() {
-                    synchronized (lock) {
-                        client.abort();
-                        lock.notify();
-                    }
+                    System.out.println(Thread.currentThread().getName() + ": from within TimerTask");
+                    client.abort();
                 }
             };
 
-            Timer timer = new Timer();
-            timer.schedule(timerTask, 8000);
+
+            timer.schedule(timerTask, 5000);
+            System.out.println(Thread.currentThread().getName() + ": from within closeHandler");
         };
     }
 
@@ -93,6 +87,7 @@ public class DemoClient {
 
         @Override
         public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
+            System.out.println("last: "+last);
             System.out.println("Message received: " + data);
 
             return WebSocket.Listener.super.onText(webSocket, data, last);
@@ -100,7 +95,8 @@ public class DemoClient {
 
         @Override
         public void onError(WebSocket webSocket, Throwable error) {
-            Logger.logError("Exception occurred",error);
+            error.printStackTrace();
+            Logger.logError("Exception occurred", error);
 
             WebSocket.Listener.super.onError(webSocket, error);
         }
@@ -108,22 +104,18 @@ public class DemoClient {
         @Override
         public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
             System.out.println("On close...");
+            System.out.println("Status code: " + statusCode);
+            System.out.println(Thread.currentThread().getName() + ": from within Websocket Listener");
 
-            synchronized (lock) {
             if (!closeInitiated) {
                 CompletableFuture<Object> temp = new CompletableFuture<>();
                 temp.completeExceptionally(new IllegalStateException("Unexpected - Server initiated close handshake!"));
 
-                webSocket.abort();
-                lock.notify();
-
                 return temp;
             }
 
-
-                webSocket.abort();
-                lock.notify();
-            }
+            timer.cancel();
+            webSocket.abort();
 
             return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
         }

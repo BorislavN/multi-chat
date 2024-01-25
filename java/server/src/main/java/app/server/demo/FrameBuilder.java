@@ -3,6 +3,7 @@ package app.server.demo;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Base64;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -11,7 +12,7 @@ public class FrameBuilder {
     public static String buildUpgradeResponse(String request) {
         boolean isGetRequest = request.startsWith("GET");
 
-        String error ;
+        String error;
 
         if (!isGetRequest) {
             error = "Not a valid upgrade request, request must use HTTP \"GET\" method!";
@@ -49,10 +50,15 @@ public class FrameBuilder {
     }
 
 
-    public static String buildCloseFrame(String request) {
+    public static ByteBuffer buildCloseFrame(int code, String reason) {
+        byte firstByte = (byte) ((code >> 8) & 255);
+        byte secondByte = (byte) (code & 255);
 
+        byte[] data = ("  " + reason).getBytes(UTF_8);
+        data[0] = firstByte;
+        data[1] = secondByte;
 
-        return "";
+        return buildFrame(data, true, 8);
     }
 
     public static String buildPingFrame(String request) {
@@ -67,7 +73,7 @@ public class FrameBuilder {
         return "";
     }
 
-    public static ByteBuffer buildFrame(String message, boolean isFinished, int opcode) {
+    public static ByteBuffer buildFrame(byte[] payload, boolean isFinished, int opcode) {
         ByteBuffer frame;
 
         byte firstByte = (byte) opcode;
@@ -76,43 +82,32 @@ public class FrameBuilder {
             firstByte |= (byte) 0b10000000;
         }
 
-        if (message.length() > 65535) {
-            frame = ByteBuffer.allocate(10 + message.length());
+        if (payload.length > 65535) {
+            frame = ByteBuffer.allocate(10 + payload.length);
 
             frame.put(0, firstByte);
             frame.put(1, (byte) 127);
-            frame.put(2, splitLengthToBytes(8, message.length()));
-            frame.put(3, message.getBytes(UTF_8));
+            frame.put(2, splitLengthToBytes(8, payload.length));
+            frame.put(10, payload);
 
             return frame;
         }
 
-        if (message.length() > 125) {
-            frame = ByteBuffer.allocate(4 + message.length());
+        if (payload.length > 125) {
+            frame = ByteBuffer.allocate(4 + payload.length);
 
             frame.put(0, firstByte);
             frame.put(1, (byte) 126);
-            frame.put(2, splitLengthToBytes(2, message.length()));
-            frame.put(3, message.getBytes(UTF_8));
+            frame.put(2, splitLengthToBytes(2, payload.length));
+            frame.put(4, payload);
 
             return frame;
         }
 
-        if (message.isBlank()) {
-            frame = ByteBuffer.allocate(4);
-
-            frame.put(0, firstByte);
-            frame.put(1, (byte) 2);
-            frame.put(2, (byte) 0b011);
-            frame.put(3, (byte) 0b11101000);
-
-            return frame;
-        }
-
-        frame = ByteBuffer.allocate(2 + message.length());
+        frame = ByteBuffer.allocate(2 + payload.length);
         frame.put(0, firstByte);
-        frame.put(1, (byte) message.length());
-        frame.put(2, message.getBytes(UTF_8));
+        frame.put(1, (byte) payload.length);
+        frame.put(2, payload);
 
         return frame;
     }
@@ -153,18 +148,21 @@ public class FrameBuilder {
     private static String createErrorResponse(String error) {
         String badRequestHeader = "HTTP/1.1 400 Bad Request";
         String supportedVersionHeader = "Sec-WebSocket-Version: 13";
+        String supportedSubProtocol = "Sec-WebSocket-Protocol: fragment-id";
         String contentTypeHeader = "Content-Type: text/plain";
         String contentLengthHeader = String.format("Content-Length: %d", error.getBytes(UTF_8).length);
 
         return String.join(System.lineSeparator()
                 , badRequestHeader
                 , supportedVersionHeader
+                , supportedSubProtocol
                 , contentTypeHeader
                 , contentLengthHeader
                 , ""
                 , error);
     }
 
+    //TODO: find out why method does not return proper values
     private static byte[] splitLengthToBytes(int parts, int length) {
         byte[] bytes = new byte[parts];
         int step = 0;
@@ -173,8 +171,16 @@ public class FrameBuilder {
             throw new IllegalArgumentException("Part limit - 8 bytes! (64bit)");
         }
 
+        long ldsadas=length;
+
         for (int index = bytes.length - 1; index >= 0; index--, step += 8) {
-            bytes[index] = (byte) (length >> step);
+            bytes[index] = (byte) (ldsadas >> step);
+
+
+        }
+
+        for (int i = 0; i < parts; i++) {
+            System.out.printf("%08d ",Integer.parseInt(Integer.toBinaryString(bytes[i]&255)));
         }
 
         return bytes;

@@ -115,7 +115,7 @@ public class ServerUtil {
                     + (Byte.toUnsignedLong(extendedData.get(1)) << 48)
                     + (Byte.toUnsignedLong(extendedData.get(2)) << 40)
                     + (Byte.toUnsignedLong(extendedData.get(3)) << 32)
-                    + (Byte.toUnsignedLong(extendedData.get(4)) << 24)
+                    + ((long) Byte.toUnsignedInt(extendedData.get(4)) << 24)
                     + (Byte.toUnsignedLong(extendedData.get(5)) << 16)
                     + (Byte.toUnsignedLong(extendedData.get(6)) << 8)
                     + (Byte.toUnsignedLong(extendedData.get(7)));

@@ -18,7 +18,7 @@ socket.addEventListener("open", (event) => {
 });
 
 socket.addEventListener("message", (event) => {
-  textArea.value += `${event.data}\n`;
+  textArea.value += `KURA MI LETI: ${event.data}\n`;
 });
 
 socket.addEventListener("error", (event) => {
