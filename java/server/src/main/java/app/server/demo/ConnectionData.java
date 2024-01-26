@@ -1,9 +1,7 @@
 package app.server.demo;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.List;
+import java.nio.ByteBuffer;
+import java.util.*;
 
 public class ConnectionData {
     private long connectionId;
@@ -11,8 +9,8 @@ public class ConnectionData {
     private boolean wasUpgraded;
     private boolean receivedPing;
     private boolean receivedClose;
-    private final List<StringBuilder> fragments;
-    private final Deque<String> waitingMessages;
+    private final List<ByteBuffer> fragments;
+    private final Deque<ByteBuffer> waitingFrames;
 
     public ConnectionData(long connectionId) {
         this.connectionId = connectionId;
@@ -20,7 +18,7 @@ public class ConnectionData {
         this.wasUpgraded = false;
         this.receivedPing = false;
         this.receivedClose = false;
-        this.waitingMessages = new ArrayDeque<>();
+        this.waitingFrames = new ArrayDeque<>();
         this.fragments = new ArrayList<>();
     }
 
@@ -64,18 +62,31 @@ public class ConnectionData {
         this.receivedClose = receivedClose;
     }
 
-    //TODO: implement
-    public String pollMessage() {
-        return this.waitingMessages.poll();
+    public ByteBuffer pollFrame() {
+        return this.waitingFrames.poll();
     }
 
-    //TODO: implement
-    public void enqueueMessage(String message) {
-        this.waitingMessages.offer(message);
+    public void enqueueMessage(ByteBuffer frame) {
+        this.waitingFrames.offer(frame);
     }
 
-    //TODO: implement
-    public List<StringBuilder> getFragments() {
-        return this.fragments;
+    public void enqueuePriorityMessage(ByteBuffer frame) {
+        this.waitingFrames.offerFirst(frame);
+    }
+
+    public List<ByteBuffer> getFragments() {
+        return Collections.unmodifiableList(this.fragments);
+    }
+
+    public void addFragment(ByteBuffer fragment) {
+        this.fragments.add(fragment);
+    }
+
+    public void enqueueFragments(List<ByteBuffer> fragments) {
+        this.waitingFrames.addAll(fragments);
+    }
+
+    public void clearFragments() {
+        this.fragments.clear();
     }
 }

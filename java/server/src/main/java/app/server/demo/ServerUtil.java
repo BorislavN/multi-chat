@@ -39,7 +39,16 @@ public class ServerUtil {
         }
     }
 
-    public FrameData readMetadata(SocketChannel connection) {
+    public FrameData readFrame(SocketChannel connection) {
+        FrameData frameData = this.readMetadata(connection);
+        String message = this.unmaskMessage(connection, frameData);
+
+        frameData.setMessage(message);
+
+        return frameData;
+    }
+
+    private FrameData readMetadata(SocketChannel connection) {
         try {
             ByteBuffer buffer = ChannelHelper.readBytes(connection, 2);
 
@@ -66,7 +75,7 @@ public class ServerUtil {
         }
     }
 
-    public String unmaskMessage(SocketChannel connection, FrameData frameData) {
+    private String unmaskMessage(SocketChannel connection, FrameData frameData) {
         try {
             ByteBuffer encodedBuffer = ChannelHelper.readBytes(connection, frameData.getLength());
             byte[] decoded = decodePayload(encodedBuffer.array(), frameData.getMask());
@@ -120,7 +129,6 @@ public class ServerUtil {
                     + (Byte.toUnsignedLong(extendedData.get(6)) << 8)
                     + (Byte.toUnsignedLong(extendedData.get(7)));
 
-            //TODO: choose better limit
             if (value > 102400) {
                 throw new IllegalArgumentException("Message too long - limit: 102400");
             }
