@@ -1,4 +1,6 @@
-package app.server.demo;
+package app.server.demo.client;
+
+import app.server.demo.Logger;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;

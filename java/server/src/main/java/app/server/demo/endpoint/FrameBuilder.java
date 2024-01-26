@@ -1,4 +1,4 @@
-package app.server.demo;
+package app.server.demo.endpoint;
 
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;

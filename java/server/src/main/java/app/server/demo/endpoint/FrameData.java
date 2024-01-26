@@ -1,4 +1,4 @@
-package app.server.demo;
+package app.server.demo.endpoint;
 
 
 //TODO: refactor so that this class contains whole frame bytes, to avoid unnecessary data conversions

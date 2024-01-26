@@ -14,28 +14,40 @@ const sendBtn = document.getElementById("sendBtn");
 const socket = new WebSocket("ws://localhost:80");
 
 socket.addEventListener("open", (event) => {
+  console.log(`Websocket connected!`);
+
   joinBtn.disabled = false;
 });
 
 socket.addEventListener("message", (event) => {
-  textArea.value += `KURA MI LETI: ${event.data}\n`;
+  let isAtBottom = (textArea.scrollTop+textArea.clientHeight) === textArea.scrollHeight;
+
+  textArea.value += `${event.data}\n`;
+
+  console.log(textArea.scrollTop);
+  console.log(textArea.scrollHeight);
+
+  if (isAtBottom) {
+    textArea.scrollTop === textArea.scrollHeight;
+  };
 });
 
 socket.addEventListener("error", (event) => {
+  let message = event.target.readyState === 3 ? "Connection closed!" : "Exception occurred!";
+
+  console.log(message);
+
   this.disableAllButtons();
 
   this.showLoginError("Exception occurred!");
   this.setGreeting("Exception occurred!")
-
-  console.log(`Exception occurred!`);
-
-  if (event.target.readyState === 3) {
-    console.log("Connection closed!");
-  }
 });
 
 socket.addEventListener("close", (event) => {
   this.disableAllButtons();
+
+  //Echo back close frame
+  socket.close(event.code);
 
   this.showLoginError("Connection closed!");
   this.setGreeting("Connection closed!")
@@ -73,9 +85,6 @@ function onSendClick() {
   }
 
   socket.send(`${currentName}: ${value}`);
-
-  //Remove when java server is implemented
-  textArea.value += `${currentName}: ${value}\n`;
 
   messageInput.value = "";
   this.setGreeting();

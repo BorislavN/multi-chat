@@ -1,4 +1,6 @@
-package app.server.demo;
+package app.server.demo.endpoint;
+
+import app.server.demo.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -163,6 +165,9 @@ public class DemoServer {
 
             if (pendingFrame != null) {
                 SocketChannel connection = this.getChannel(key);
+
+                pendingFrame.position(0);
+
                 ChannelHelper.writeBytes(connection, pendingFrame);
 
                 if (this.wasCloseFrame(pendingFrame.get(0))) {
