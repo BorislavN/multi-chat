@@ -3,7 +3,6 @@ package app.server.demo.endpoint;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 import java.util.Base64;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -171,16 +170,8 @@ public class FrameBuilder {
             throw new IllegalArgumentException("Part limit - 8 bytes! (64bit)");
         }
 
-        long ldsadas=length;
-
-        for (int index = bytes.length - 1; index >= 0; index--, step += 8) {
-            bytes[index] = (byte) (ldsadas >> step);
-
-
-        }
-
-        for (int i = 0; i < parts; i++) {
-            System.out.printf("%08d ",Integer.parseInt(Integer.toBinaryString(bytes[i]&255)));
+        for (int index = bytes.length - 1; index >= (bytes.length / 2) - 1; index--, step += 8) {
+            bytes[index] = (byte) (length >> step);
         }
 
         return bytes;

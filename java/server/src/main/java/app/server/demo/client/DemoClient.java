@@ -106,6 +106,10 @@ public class DemoClient {
 
         @Override
         public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
+            if (reason.isBlank()) {
+                reason = "None";
+            }
+
             System.out.printf("Close frame received - Code: %d, Reason: %s%n", statusCode, reason);
 
             if (closeInitiated) {

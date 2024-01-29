@@ -48,11 +48,14 @@ public class DemoServer {
     private final ServerUtil utilities;
     private final Map<Long, ConnectionData> activeConnections;
     private boolean receivedConnection;
+    private final int maxFragmentedLength;
 
-    public DemoServer(int port) {
+
+    public DemoServer(int port, int messageLimit, int maxFragmentedLength) {
         this.activeConnections = new HashMap<>();
         this.receivedConnection = false;
-        this.utilities = new ServerUtil();
+        this.maxFragmentedLength = maxFragmentedLength;
+        this.utilities = new ServerUtil(messageLimit);
 
         try {
             this.server = ServerSocketChannel.open();
@@ -109,12 +112,13 @@ public class DemoServer {
             SocketChannel connection = this.server.accept();
 
             if (connection != null) {
-                ConnectionData data = new ConnectionData(this.utilities.getNextId());
-                this.activeConnections.put(data.getConnectionId(), data);
-
+                ConnectionData data = new ConnectionData(this.utilities.getNextId(), this.maxFragmentedLength);
                 connection.configureBlocking(false);
-                connection.register(this.selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE, data.getConnectionId());
 
+                SelectionKey channelKey = connection.register(this.selector, SelectionKey.OP_READ, data.getConnectionId());
+                data.setSelectionKey(channelKey);
+
+                this.activeConnections.put(data.getConnectionId(), data);
                 this.receivedConnection = true;
             }
         }
@@ -128,7 +132,9 @@ public class DemoServer {
             if (connectionData.wasUpgraded()) {
                 FrameData frameData = this.utilities.readFrame(connection);
 
-                Logger.log(frameData.getMessage());
+//                Logger.log(frameData.getMessage());
+                System.out.println(frameData);
+                System.out.println();
 
                 switch (frameData.getOpcode()) {
                     case 0, 1 -> this.handleMessage(connectionData, frameData);
@@ -165,12 +171,11 @@ public class DemoServer {
 
             if (pendingFrame != null) {
                 SocketChannel connection = this.getChannel(key);
-
                 pendingFrame.position(0);
 
                 ChannelHelper.writeBytes(connection, pendingFrame);
 
-                if (this.wasCloseFrame(pendingFrame.get(0))) {
+                if (this.wasCloseFrame(pendingFrame.get(0)) && data.receivedClose()) {
                     this.disconnectUser(key);
                 }
             }
@@ -186,8 +191,9 @@ public class DemoServer {
 
         if (frameData.getMessage().length() > 4) {
             frameData.setMessage(frameData.getMessage().substring(6));
-
         }
+
+        connectionData.setReceivedClose(true);
 
         ByteBuffer frame = FrameBuilder.buildCloseFrame(code, frameData.getMessage());
         connectionData.enqueuePriorityMessage(frame);
@@ -296,7 +302,7 @@ public class DemoServer {
     }
 
     public static void main(String[] args) {
-        DemoServer server = new DemoServer(80);
+        DemoServer server = new DemoServer(80, 10240, 102400);
         server.start();
     }
 }

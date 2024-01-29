@@ -1,5 +1,6 @@
 package app.server.demo.endpoint;
 
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
@@ -55,7 +56,7 @@ public class ChannelHelper {
     public static void writeBytes(SocketChannel connection, ByteBuffer buffer) throws IOException {
         for (int attempts = 0; attempts < 5; attempts++) {
             if (!buffer.hasRemaining()) {
-               return;
+                return;
             }
 
             int bytesWritten = connection.write(buffer);

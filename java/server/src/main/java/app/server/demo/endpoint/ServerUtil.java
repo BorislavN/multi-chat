@@ -1,22 +1,26 @@
 package app.server.demo.endpoint;
 
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-//TODO: extract max message limit, max fragmented message limit to private fields
 public class ServerUtil {
     private long connectionId;
+    private final int messageLimit;
 
-    public ServerUtil() {
+    public ServerUtil(int messageLimit) {
         this.connectionId = 0;
+        this.messageLimit = messageLimit;
     }
 
     public long getNextId() {
         return this.connectionId++;
+    }
+
+    public int getMessageLimit() {
+        return this.messageLimit;
     }
 
     public boolean upgradeConnection(SocketChannel connection) {
@@ -113,7 +117,6 @@ public class ServerUtil {
     //16 bits => max unsigned value: 65535 bytes => 63KB
     //64 bits => max unsigned value: over 16 million TB :D
     //We need a message limit
-    //I'm thinking of 100KB, that is an array with over 102,400 indexes
     private int getPayloadLength(byte data, SocketChannel connection) throws IOException {
         int initialLength = data & 127;
         ByteBuffer extendedData;
@@ -125,13 +128,13 @@ public class ServerUtil {
                     + (Byte.toUnsignedLong(extendedData.get(1)) << 48)
                     + (Byte.toUnsignedLong(extendedData.get(2)) << 40)
                     + (Byte.toUnsignedLong(extendedData.get(3)) << 32)
-                    + ((long) Byte.toUnsignedInt(extendedData.get(4)) << 24)
+                    + (Byte.toUnsignedLong(extendedData.get(4)) << 24)
                     + (Byte.toUnsignedLong(extendedData.get(5)) << 16)
                     + (Byte.toUnsignedLong(extendedData.get(6)) << 8)
                     + (Byte.toUnsignedLong(extendedData.get(7)));
 
-            if (value > 102400) {
-                throw new IllegalArgumentException("Message too long - limit: 102400");
+            if (value > this.messageLimit) {
+                throw new IllegalArgumentException(String.format("Message too long limit - %d!", this.messageLimit));
             }
 
             return (int) value;

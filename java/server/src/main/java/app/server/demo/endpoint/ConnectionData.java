@@ -1,7 +1,10 @@
 package app.server.demo.endpoint;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 import java.util.*;
+
+import static java.nio.channels.SelectionKey.OP_WRITE;
 
 public class ConnectionData {
     private long connectionId;
@@ -9,10 +12,12 @@ public class ConnectionData {
     private boolean wasUpgraded;
     private boolean receivedPing;
     private boolean receivedClose;
+    private SelectionKey selectionKey;
     private final List<ByteBuffer> fragments;
     private final Deque<ByteBuffer> waitingFrames;
+    private final int fragmentedMessageLimit;
 
-    public ConnectionData(long connectionId) {
+    public ConnectionData(long connectionId, int fragmentedMessageLimit) {
         this.connectionId = connectionId;
         this.username = null;
         this.wasUpgraded = false;
@@ -20,6 +25,7 @@ public class ConnectionData {
         this.receivedClose = false;
         this.waitingFrames = new ArrayDeque<>();
         this.fragments = new ArrayList<>();
+        this.fragmentedMessageLimit = fragmentedMessageLimit;
     }
 
     public long getConnectionId() {
@@ -62,16 +68,36 @@ public class ConnectionData {
         this.receivedClose = receivedClose;
     }
 
+    public SelectionKey getSelectionKey() {
+        return this.selectionKey;
+    }
+
+    public void setSelectionKey(SelectionKey selectionKey) {
+        this.selectionKey = selectionKey;
+    }
+
+    public int getFragmentedMessageLimit() {
+        return this.fragmentedMessageLimit;
+    }
+
     public ByteBuffer pollFrame() {
-        return this.waitingFrames.poll();
+        ByteBuffer temp = this.waitingFrames.poll();
+
+        if (temp == null) {
+            this.selectionKey.interestOps(SelectionKey.OP_READ);
+        }
+
+        return temp;
     }
 
     public void enqueueMessage(ByteBuffer frame) {
         this.waitingFrames.offer(frame);
+        this.registerForWrite();
     }
 
     public void enqueuePriorityMessage(ByteBuffer frame) {
         this.waitingFrames.offerFirst(frame);
+        this.registerForWrite();
     }
 
     public List<ByteBuffer> getFragments() {
@@ -84,9 +110,18 @@ public class ConnectionData {
 
     public void enqueueFragments(List<ByteBuffer> fragments) {
         this.waitingFrames.addAll(fragments);
+        this.registerForWrite();
     }
 
     public void clearFragments() {
         this.fragments.clear();
+    }
+
+    private void registerForWrite() {
+        int flag = this.selectionKey.interestOps() & OP_WRITE;
+
+        if (flag == 0) {
+            this.selectionKey.interestOps(SelectionKey.OP_READ | OP_WRITE);
+        }
     }
 }
