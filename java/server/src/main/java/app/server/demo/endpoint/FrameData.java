@@ -138,7 +138,7 @@ public class FrameData {
                     + (Byte.toUnsignedLong(data.get(7)));
 
 
-            if (tempValue > Constants.messageLimit) {
+            if (tempValue > Constants.messageLimit*10) {
                 throw new IllegalStateException(String.format("Message too long limit - %d!", Constants.messageLimit));
             }
 

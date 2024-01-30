@@ -73,7 +73,10 @@ public class DemoClient {
     }
 
     private static class WebSocketClient implements WebSocket.Listener {
+        private StringBuilder stringBuilder;
+
         public WebSocketClient() {
+            this.stringBuilder = new StringBuilder();
         }
 
         @Override
@@ -85,11 +88,12 @@ public class DemoClient {
 
         @Override
         public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-            if (!last) {
-                System.err.println("Fragment!");
-            } else {
-                System.out.println(data);
-            }
+//            this.stringBuilder.append(data);
+//
+//            if (last) {
+//                System.out.println(this.stringBuilder);
+//                this.stringBuilder = new StringBuilder();
+//            }
 
             return WebSocket.Listener.super.onText(webSocket, data, last);
         }
@@ -123,7 +127,6 @@ public class DemoClient {
             webSocket.sendClose(statusCode, reason).thenRun(closeHandler(webSocket));
 
             return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
-
         }
     }
 }

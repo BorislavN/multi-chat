@@ -37,6 +37,7 @@ public class ChannelHelper {
         ByteBuffer buffer = ByteBuffer.allocate(bytes);
 
         int bytesRead;
+        int failCounter = 0;
 
         while (buffer.hasRemaining()) {
             bytesRead = connection.read(buffer);
@@ -46,9 +47,15 @@ public class ChannelHelper {
             }
 
             if (bytesRead == 0) {
-                throw new IllegalStateException("Next frame chunk could not be read!");
+                if (failCounter == 500) {
+                    throw new IllegalStateException("Next frame chunk could not be read!");
+                }
+
+                failCounter++;
             }
         }
+
+        System.out.println("Fail counter: "+(failCounter>0?"$":"")+failCounter);
 
         return buffer.flip();
     }

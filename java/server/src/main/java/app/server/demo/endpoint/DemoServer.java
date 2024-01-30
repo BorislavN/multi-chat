@@ -14,8 +14,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 /*JS code required:
 const socket = new WebSocket("ws://localhost:80");
 
@@ -42,6 +40,8 @@ socket.addEventListener("open", (event) => {
 //with a field for messageId / other metadata, the server will send these JSONs as completed frames, and the client will
 //interpret the metadata and act accordingly, even if there was an intermediary (there is not, we are running this in localhost), one that decides to split our frame,
 //the client should buffer the fragmented frame before parsing the JSON, avoiding potential exceptions
+
+//TODO: check why server crashes when receiving fragmented messages from the java client
 public class DemoServer {
     private ServerSocketChannel server;
     private Selector selector;
@@ -91,6 +91,7 @@ public class DemoServer {
                             Logger.logError("Exception encountered", e);
 
                             //TODO: send close request before disconnecting
+                            e.printStackTrace();
 
                             this.disconnectUser(key);
                         }
@@ -184,35 +185,30 @@ public class DemoServer {
             throw new IllegalStateException("Control frames cannot be fragmented!");
         }
 
-        int code = Integer.parseInt(frameData.getMessage().substring(0, 4));
-
-        if (frameData.getMessage().length() > 4) {
-//            frameData.setMessage(frameData.getMessage().substring(6));
-        }
-
         connectionData.setReceivedClose(true);
 
-        ByteBuffer frame = FrameBuilder.buildCloseFrame(code, frameData.getMessage());
-        connectionData.enqueuePriorityMessage(frame);
+        connectionData.enqueuePriorityMessage(FrameBuilder.buildFrame(frameData));
     }
 
     private void handlePingRequest(ConnectionData connectionData, FrameData frameData) {
+        System.out.println("Received PING!!!!!");
         //TODO: create pong frame, enqueue priority
     }
 
-    private void handleMessage(ConnectionData connectionData, FrameData frameData) throws IOException {
-        ByteBuffer frame;
+    private void handleMessage(ConnectionData connectionData, FrameData frameData) {
+        ByteBuffer frame = FrameBuilder.buildFrame(frameData);
 
         if (this.isFragment(frameData)) {
-            //TODO: Create a fragment
-            // add frame to collection
-            // enqueue frames if this was the last one
-            // send close request with error code if message limit is exceeded
+            connectionData.addFragment(frame);
+
+            if (frameData.isFinished()) {
+                this.enqueueFragmentsToAllUsers(connectionData);
+            }
+
             return;
         }
 
-//        frame = FrameBuilder.buildFrame(frameData.getMessage().getBytes(UTF_8), true, frameData.getOpcode());
-//        this.enqueueToAllUsers(frame);
+        this.enqueueToAllUsers(frame);
     }
 
     private boolean isFragment(FrameData frameData) {
