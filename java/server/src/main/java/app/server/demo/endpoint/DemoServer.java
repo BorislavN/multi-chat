@@ -48,14 +48,11 @@ public class DemoServer {
     private final ServerUtil utilities;
     private final Map<Long, ConnectionData> activeConnections;
     private boolean receivedConnection;
-    private final int maxFragmentedLength;
 
-
-    public DemoServer(int port, int messageLimit, int maxFragmentedLength) {
+    public DemoServer(int port) {
         this.activeConnections = new HashMap<>();
         this.receivedConnection = false;
-        this.maxFragmentedLength = maxFragmentedLength;
-        this.utilities = new ServerUtil(messageLimit);
+        this.utilities = new ServerUtil();
 
         try {
             this.server = ServerSocketChannel.open();
@@ -93,6 +90,8 @@ public class DemoServer {
                         } catch (MalformedFrameException | IllegalArgumentException | IllegalStateException e) {
                             Logger.logError("Exception encountered", e);
 
+                            //TODO: send close request before disconnecting
+
                             this.disconnectUser(key);
                         }
 
@@ -112,13 +111,13 @@ public class DemoServer {
             SocketChannel connection = this.server.accept();
 
             if (connection != null) {
-                ConnectionData data = new ConnectionData(this.utilities.getNextId(), this.maxFragmentedLength);
+                long nextId = this.utilities.getNextId();
                 connection.configureBlocking(false);
 
-                SelectionKey channelKey = connection.register(this.selector, SelectionKey.OP_READ, data.getConnectionId());
-                data.setSelectionKey(channelKey);
+                SelectionKey channelKey = connection.register(this.selector, SelectionKey.OP_READ, nextId);
+                ConnectionData data = new ConnectionData(channelKey);
 
-                this.activeConnections.put(data.getConnectionId(), data);
+                this.activeConnections.put(nextId, data);
                 this.receivedConnection = true;
             }
         }
@@ -142,8 +141,6 @@ public class DemoServer {
                     case 8 -> this.handleCloseRequest(connectionData, frameData);
 
                     case 9 -> this.handlePingRequest(connectionData, frameData);
-
-                    default -> this.handleUnsupportedOpcode(connectionData, frameData);
                 }
             }
 
@@ -190,7 +187,7 @@ public class DemoServer {
         int code = Integer.parseInt(frameData.getMessage().substring(0, 4));
 
         if (frameData.getMessage().length() > 4) {
-            frameData.setMessage(frameData.getMessage().substring(6));
+//            frameData.setMessage(frameData.getMessage().substring(6));
         }
 
         connectionData.setReceivedClose(true);
@@ -214,13 +211,8 @@ public class DemoServer {
             return;
         }
 
-        frame = FrameBuilder.buildFrame(frameData.getMessage().getBytes(UTF_8), true, frameData.getOpcode());
-        this.enqueueToAllUsers(frame);
-    }
-
-    private void handleUnsupportedOpcode(ConnectionData connectionData, FrameData frameData) {
-        Logger.logAsError("Unsupported opcode!");
-        //TODO: send close frame with proper status code to client
+//        frame = FrameBuilder.buildFrame(frameData.getMessage().getBytes(UTF_8), true, frameData.getOpcode());
+//        this.enqueueToAllUsers(frame);
     }
 
     private boolean isFragment(FrameData frameData) {
@@ -237,7 +229,6 @@ public class DemoServer {
         connectionData.clearFragments();
     }
 
-    //TODO: find out why users cannot receive messages from other users
     private void enqueueToAllUsers(ByteBuffer frame) {
         for (ConnectionData value : this.activeConnections.values()) {
             value.enqueueMessage(frame);
@@ -302,7 +293,7 @@ public class DemoServer {
     }
 
     public static void main(String[] args) {
-        DemoServer server = new DemoServer(80, 10240, 102400);
+        DemoServer server = new DemoServer(80);
         server.start();
     }
 }

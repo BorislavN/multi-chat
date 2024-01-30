@@ -57,14 +57,10 @@ public class FrameBuilder {
         data[0] = firstByte;
         data[1] = secondByte;
 
-        return buildFrame(data, true, 8);
+//        return buildFrame(data, true, 8);
+        return null;
     }
 
-    public static String buildPingFrame(String request) {
-
-
-        return "";
-    }
 
     public static String buildPongFrame(String request) {
 
@@ -72,41 +68,30 @@ public class FrameBuilder {
         return "";
     }
 
-    public static ByteBuffer buildFrame(byte[] payload, boolean isFinished, int opcode) {
+    public static ByteBuffer buildFrame(FrameData frameData) {
         ByteBuffer frame;
+        byte[] payload = frameData.getPayload();
 
-        byte firstByte = (byte) opcode;
+        //Clear mask bit
+        byte secondByte = (byte) (frameData.getSecondByte() & 127);
 
-        if (isFinished) {
-            firstByte |= (byte) 0b10000000;
-        }
-
-        if (payload.length > 65535) {
+        if (secondByte == 127) {
             frame = ByteBuffer.allocate(10 + payload.length);
-
-            frame.put(0, firstByte);
-            frame.put(1, (byte) 127);
-            frame.put(2, splitLengthToBytes(8, payload.length));
+            frame.put(2, frameData.getExtendedLength());
             frame.put(10, payload);
 
-            return frame;
-        }
-
-        if (payload.length > 125) {
+        } else if (secondByte == 126) {
             frame = ByteBuffer.allocate(4 + payload.length);
-
-            frame.put(0, firstByte);
-            frame.put(1, (byte) 126);
-            frame.put(2, splitLengthToBytes(2, payload.length));
+            frame.put(2, frameData.getExtendedLength());
             frame.put(4, payload);
 
-            return frame;
+        } else {
+            frame = ByteBuffer.allocate(2 + payload.length);
+            frame.put(2, payload);
         }
 
-        frame = ByteBuffer.allocate(2 + payload.length);
-        frame.put(0, firstByte);
-        frame.put(1, (byte) payload.length);
-        frame.put(2, payload);
+        frame.put(0, frameData.getFirstByte());
+        frame.put(1, secondByte);
 
         return frame;
     }
@@ -159,21 +144,5 @@ public class FrameBuilder {
                 , contentLengthHeader
                 , ""
                 , error);
-    }
-
-    //TODO: find out why method does not return proper values
-    private static byte[] splitLengthToBytes(int parts, int length) {
-        byte[] bytes = new byte[parts];
-        int step = 0;
-
-        if (parts > 8) {
-            throw new IllegalArgumentException("Part limit - 8 bytes! (64bit)");
-        }
-
-        for (int index = bytes.length - 1; index >= (bytes.length / 2) - 1; index--, step += 8) {
-            bytes[index] = (byte) (length >> step);
-        }
-
-        return bytes;
     }
 }

@@ -24,11 +24,8 @@ socket.addEventListener("message", (event) => {
 
   textArea.value += `${event.data}\n`;
 
-  console.log(textArea.scrollTop);
-  console.log(textArea.scrollHeight);
-
   if (isAtBottom) {
-    textArea.scrollTop === textArea.scrollHeight;
+    textArea.scrollTop = textArea.scrollHeight;
   };
 });
 

@@ -7,33 +7,22 @@ import java.util.*;
 import static java.nio.channels.SelectionKey.OP_WRITE;
 
 public class ConnectionData {
-    private long connectionId;
     private String username;
     private boolean wasUpgraded;
     private boolean receivedPing;
     private boolean receivedClose;
-    private SelectionKey selectionKey;
+    private final SelectionKey selectionKey;
     private final List<ByteBuffer> fragments;
     private final Deque<ByteBuffer> waitingFrames;
-    private final int fragmentedMessageLimit;
 
-    public ConnectionData(long connectionId, int fragmentedMessageLimit) {
-        this.connectionId = connectionId;
+    public ConnectionData(SelectionKey key) {
+        this.selectionKey = key;
         this.username = null;
         this.wasUpgraded = false;
         this.receivedPing = false;
         this.receivedClose = false;
         this.waitingFrames = new ArrayDeque<>();
         this.fragments = new ArrayList<>();
-        this.fragmentedMessageLimit = fragmentedMessageLimit;
-    }
-
-    public long getConnectionId() {
-        return this.connectionId;
-    }
-
-    public void setConnectionId(long connectionId) {
-        this.connectionId = connectionId;
     }
 
     public String getUsername() {
@@ -72,14 +61,6 @@ public class ConnectionData {
         return this.selectionKey;
     }
 
-    public void setSelectionKey(SelectionKey selectionKey) {
-        this.selectionKey = selectionKey;
-    }
-
-    public int getFragmentedMessageLimit() {
-        return this.fragmentedMessageLimit;
-    }
-
     public ByteBuffer pollFrame() {
         ByteBuffer temp = this.waitingFrames.poll();
 
@@ -105,6 +86,7 @@ public class ConnectionData {
     }
 
     public void addFragment(ByteBuffer fragment) {
+        //TODO: check if fragment will exceed fragmentedMessageLimit
         this.fragments.add(fragment);
     }
 
