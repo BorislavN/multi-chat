@@ -4,6 +4,7 @@ import app.server.demo.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -41,7 +42,6 @@ socket.addEventListener("open", (event) => {
 //interpret the metadata and act accordingly, even if there was an intermediary (there is not, we are running this in localhost), one that decides to split our frame,
 //the client should buffer the fragmented frame before parsing the JSON, avoiding potential exceptions
 
-//TODO: check why server crashes when receiving fragmented messages from the java client
 public class DemoServer {
     private ServerSocketChannel server;
     private Selector selector;
@@ -91,7 +91,6 @@ public class DemoServer {
                             Logger.logError("Exception encountered", e);
 
                             //TODO: send close request before disconnecting
-                            e.printStackTrace();
 
                             this.disconnectUser(key);
                         }
@@ -133,8 +132,8 @@ public class DemoServer {
                 FrameData frameData = this.utilities.readFrame(connection);
 
 //                Logger.log(frameData.getMessage());
+//                System.out.println();
                 System.out.println(frameData);
-                System.out.println();
 
                 switch (frameData.getOpcode()) {
                     case 0, 1 -> this.handleMessage(connectionData, frameData);

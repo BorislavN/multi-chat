@@ -14,12 +14,15 @@ import java.util.concurrent.CompletionStage;
 //Example from - https://stackoverflow.com/questions/55380813/require-assistance-with-simple-pure-java-11-websocket-client-example
 //Using java.net.http.WebSocket
 
-//TODO: refactor, add support for fragmented messages
+//TODO: refactor
+// implement fragmented message concatenation in js client too
 public class DemoClient {
     private static volatile boolean closeInitiated = false;
     private static final Timer timer = new Timer();
 
     public static void main(String[] args) throws Exception {
+//        System.setProperty("jdk.internal.httpclient.websocket.debug", "true");
+
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
         WebSocket client = HttpClient
@@ -88,12 +91,12 @@ public class DemoClient {
 
         @Override
         public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-//            this.stringBuilder.append(data);
-//
-//            if (last) {
-//                System.out.println(this.stringBuilder);
-//                this.stringBuilder = new StringBuilder();
-//            }
+            this.stringBuilder.append(data);
+
+            if (last) {
+                System.out.println(this.stringBuilder);
+                this.stringBuilder = new StringBuilder();
+            }
 
             return WebSocket.Listener.super.onText(webSocket, data, last);
         }

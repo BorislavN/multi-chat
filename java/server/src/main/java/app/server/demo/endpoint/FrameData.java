@@ -83,6 +83,10 @@ public class FrameData {
         return message;
     }
 
+    public int getTotalLength() {
+        return this.totalLength;
+    }
+
     @Override
     public String toString() {
         String delimiter = "///////////////////////";
@@ -138,8 +142,8 @@ public class FrameData {
                     + (Byte.toUnsignedLong(data.get(7)));
 
 
-            if (tempValue > Constants.messageLimit*10) {
-                throw new IllegalStateException(String.format("Message too long limit - %d!", Constants.messageLimit));
+            if (tempValue > Constants.MESSAGE_LIMIT *20) {
+                throw new IllegalStateException(String.format("Message too long limit - %d!", Constants.MESSAGE_LIMIT));
             }
 
             return (int) tempValue;

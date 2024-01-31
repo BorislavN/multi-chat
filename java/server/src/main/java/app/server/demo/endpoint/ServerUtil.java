@@ -52,9 +52,6 @@ public class ServerUtil {
             }
 
             ByteBuffer mask = ChannelHelper.readBytes(connection, 4);
-            System.out.println("isFinished: "+((metadata.get(0)&128)==128));
-            System.out.println("opcode: "+(metadata.get(0)&15));
-            System.out.println("Need to read: "+length);
             ByteBuffer maskedPayload = ChannelHelper.readBytes(connection, length);
 
             return new FrameData(length,metadata,extendedLength,mask,maskedPayload);

@@ -1,6 +1,8 @@
 package app.server.demo.endpoint;
 
 
+import app.server.demo.Logger;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
@@ -37,7 +39,6 @@ public class ChannelHelper {
         ByteBuffer buffer = ByteBuffer.allocate(bytes);
 
         int bytesRead;
-        int failCounter = 0;
 
         while (buffer.hasRemaining()) {
             bytesRead = connection.read(buffer);
@@ -46,16 +47,12 @@ public class ChannelHelper {
                 throw new IllegalStateException("Connection closed!");
             }
 
+            //TODO: rework
             if (bytesRead == 0) {
-                if (failCounter == 500) {
-                    throw new IllegalStateException("Next frame chunk could not be read!");
-                }
-
-                failCounter++;
+                Logger.logAsError("Could not read frame chunk!");
+//                throw new IllegalStateException("Next frame chunk could not be read!");
             }
         }
-
-        System.out.println("Fail counter: "+(failCounter>0?"$":"")+failCounter);
 
         return buffer.flip();
     }
