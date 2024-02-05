@@ -1,7 +1,7 @@
 package app.server.demo.endpoint;
 
 
-import app.server.demo.Logger;
+import app.server.demo.Constants;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -35,30 +35,16 @@ public class ChannelHelper {
         return message.toString();
     }
 
-    public static ByteBuffer readBytes(SocketChannel connection, int bytes) throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(bytes);
+    public static void readBytes(SocketChannel connection, ByteBuffer buffer) throws IOException {
+        int bytesRead = connection.read(buffer);
 
-        int bytesRead;
-
-        while (buffer.hasRemaining()) {
-            bytesRead = connection.read(buffer);
-
-            if (bytesRead == -1) {
-                throw new IllegalStateException("Connection closed!");
-            }
-
-            //TODO: rework
-            if (bytesRead == 0) {
-                Logger.logAsError("Could not read frame chunk!");
-//                throw new IllegalStateException("Next frame chunk could not be read!");
-            }
+        if (bytesRead == -1) {
+            throw new IllegalStateException("Connection closed!");
         }
-
-        return buffer.flip();
     }
 
     public static void writeBytes(SocketChannel connection, ByteBuffer buffer) throws IOException {
-        for (int attempts = 0; attempts < 5; attempts++) {
+        for (int attempts = 0; attempts < Constants.ATTEMPT_LIMIT; attempts++) {
             if (!buffer.hasRemaining()) {
                 return;
             }

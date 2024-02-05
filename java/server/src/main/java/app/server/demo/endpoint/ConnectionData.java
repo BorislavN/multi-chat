@@ -2,6 +2,7 @@ package app.server.demo.endpoint;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.nio.channels.SocketChannel;
 import java.util.*;
 
 import static java.nio.channels.SelectionKey.OP_WRITE;
@@ -11,8 +12,10 @@ public class ConnectionData {
     private boolean wasUpgraded;
     private boolean receivedPing;
     private boolean receivedClose;
-    private final SelectionKey selectionKey;
+    private boolean sentClose;
+    private FrameData lastFrame;
     private final List<ByteBuffer> fragments;
+    private final SelectionKey selectionKey;
     private final Deque<ByteBuffer> waitingFrames;
 
     public ConnectionData(SelectionKey key) {
@@ -21,6 +24,8 @@ public class ConnectionData {
         this.wasUpgraded = false;
         this.receivedPing = false;
         this.receivedClose = false;
+        this.sentClose = false;
+        this.lastFrame=new FrameData();
         this.waitingFrames = new ArrayDeque<>();
         this.fragments = new ArrayList<>();
     }
@@ -57,8 +62,28 @@ public class ConnectionData {
         this.receivedClose = receivedClose;
     }
 
+    public boolean sentClose() {
+        return this.sentClose;
+    }
+
+    public void setSentClose(boolean sentClose) {
+        this.sentClose = sentClose;
+    }
+
     public SelectionKey getSelectionKey() {
         return this.selectionKey;
+    }
+
+    public SocketChannel getConnection() {
+        return (SocketChannel) this.selectionKey.channel();
+    }
+
+    public FrameData getLastFrame() {
+        return this.lastFrame;
+    }
+
+    public void resetLastFrame() {
+        this.lastFrame = new FrameData();
     }
 
     public ByteBuffer pollFrame() {

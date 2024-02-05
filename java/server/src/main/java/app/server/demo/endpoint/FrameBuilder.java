@@ -68,31 +68,31 @@ public class FrameBuilder {
     }
 
     public static ByteBuffer buildFrame(FrameData frameData) {
-        ByteBuffer frame;
-        byte[] payload = frameData.getPayload();
+        ByteBuffer newFrame;
+        byte[] payload = frameData.getPayload().array();
 
         //Clear mask bit
         byte secondByte = (byte) (frameData.getSecondByte() & 127);
 
         if (secondByte == 127) {
-            frame = ByteBuffer.allocate(10 + payload.length);
-            frame.put(2, frameData.getExtendedLength());
-            frame.put(10, payload);
+            newFrame = ByteBuffer.allocate(10 + payload.length);
+            newFrame.put(2, frameData.getExtendedLength(),0,8);
+            newFrame.put(10, payload);
 
         } else if (secondByte == 126) {
-            frame = ByteBuffer.allocate(4 + payload.length);
-            frame.put(2, frameData.getExtendedLength());
-            frame.put(4, payload);
+            newFrame = ByteBuffer.allocate(4 + payload.length);
+            newFrame.put(2, frameData.getExtendedLength(),0,2);
+            newFrame.put(4, payload);
 
         } else {
-            frame = ByteBuffer.allocate(2 + payload.length);
-            frame.put(2, payload);
+            newFrame = ByteBuffer.allocate(2 + payload.length);
+            newFrame.put(2, payload);
         }
 
-        frame.put(0, frameData.getFirstByte());
-        frame.put(1, secondByte);
+        newFrame.put(0, frameData.getFirstByte());
+        newFrame.put(1, secondByte);
 
-        return frame;
+        return newFrame;
     }
 
     public static ByteBuffer buildFrame(boolean isFinished, int opcode, byte[] payload) {

@@ -38,23 +38,61 @@ public class ServerUtil {
         }
     }
 
-    public FrameData readFrame(SocketChannel connection) {
+    public void readFrame(ConnectionData connectionData) {
         try {
-            ByteBuffer metadata = ChannelHelper.readBytes(connection, 2);
+            SocketChannel connection = connectionData.getConnection();
 
-            FrameData.validateFirstByte(metadata.get(0));
-            FrameData.validateSecondByte(metadata.get(1));
-            int length = FrameData.parseInitialLength(metadata.get(1));
-            ByteBuffer extendedLength = this.readExtendedLength(connection, length);
-
-            if (extendedLength != null) {
-                length = FrameData.parseExtendedLength(extendedLength);
+            if (connectionData.getLastFrame().isReadCompleted()) {
+                connectionData.resetLastFrame();
             }
 
-            ByteBuffer mask = ChannelHelper.readBytes(connection, 4);
-            ByteBuffer maskedPayload = ChannelHelper.readBytes(connection, length);
+            FrameData lastFrame = connectionData.getLastFrame();
+            lastFrame.incrementAttempts();
 
-            return new FrameData(length,metadata,extendedLength,mask,maskedPayload);
+            if (lastFrame.getStage() == 0) {
+                lastFrame.initMetadata();
+                ChannelHelper.readBytes(connection, lastFrame.getMetadata());
+
+                if (lastFrame.getMetadata().hasRemaining()) {
+                    return;
+                }
+
+                lastFrame.validateMetadata();
+
+                lastFrame.incrementStage();
+            }
+
+            if (lastFrame.getStage() == 1) {
+                this.readExtendedLength(connection, lastFrame);
+
+                if (lastFrame.getExtendedLength() != null && lastFrame.getExtendedLength().hasRemaining()) {
+                    return;
+                }
+
+                lastFrame.incrementStage();
+            }
+
+            if (lastFrame.getStage() == 2) {
+                lastFrame.initMask();
+                ChannelHelper.readBytes(connection, lastFrame.getMask());
+
+                if (lastFrame.getMask().hasRemaining()) {
+                    return;
+                }
+
+                lastFrame.incrementStage();
+            }
+
+            if (lastFrame.getStage() == 3) {
+                lastFrame.initPayload(lastFrame.getPayloadLength());
+                ChannelHelper.readBytes(connection, lastFrame.getPayload());
+
+                if (lastFrame.getPayload().hasRemaining()) {
+                    return;
+                }
+
+                lastFrame.incrementStage();
+            }
 
         } catch (IOException e) {
             throw new IllegalStateException(
@@ -63,15 +101,21 @@ public class ServerUtil {
         }
     }
 
-    private ByteBuffer readExtendedLength(SocketChannel connection, int initialLength) throws IOException {
+    private void readExtendedLength(SocketChannel connection, FrameData frameData) throws IOException {
+        int initialLength = frameData.parseInitialLength();
+
+        if (initialLength <= 125) {
+            return;
+        }
+
         if (initialLength == 127) {
-            return ChannelHelper.readBytes(connection, 8);
+            frameData.initExtendedLength(8);
         }
 
         if (initialLength == 126) {
-            return ChannelHelper.readBytes(connection, 2);
+            frameData.initExtendedLength(2);
         }
 
-        return null;
+        ChannelHelper.readBytes(connection, frameData.getExtendedLength());
     }
 }

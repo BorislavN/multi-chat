@@ -129,19 +129,21 @@ public class DemoServer {
             ConnectionData connectionData = this.activeConnections.get(this.getId(key));
 
             if (connectionData.wasUpgraded()) {
-                FrameData frameData = this.utilities.readFrame(connection);
+                this.utilities.readFrame(connectionData);
 
-//                Logger.log(frameData.getMessage());
-//                System.out.println();
-                System.out.println(frameData);
+                FrameData lastFrame = connectionData.getLastFrame();
 
-                switch (frameData.getOpcode()) {
-                    case 0, 1 -> this.handleMessage(connectionData, frameData);
+                if ( lastFrame.isReadCompleted()){
+                   Logger.log(lastFrame.getMessage());
 
-                    case 8 -> this.handleCloseRequest(connectionData, frameData);
+                   switch (lastFrame.getOpcode()) {
+                       case 0, 1 -> this.handleMessage(connectionData, lastFrame);
 
-                    case 9 -> this.handlePingRequest(connectionData, frameData);
-                }
+                       case 8 -> this.handleCloseRequest(connectionData, lastFrame);
+
+                       case 9 -> this.handlePingRequest(connectionData, lastFrame);
+                   }
+               }
             }
 
             if (!connectionData.wasUpgraded()) {

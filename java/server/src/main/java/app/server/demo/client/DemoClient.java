@@ -15,7 +15,6 @@ import java.util.concurrent.CompletionStage;
 //Using java.net.http.WebSocket
 
 //TODO: refactor
-// implement fragmented message concatenation in js client too
 public class DemoClient {
     private static volatile boolean closeInitiated = false;
     private static final Timer timer = new Timer();
