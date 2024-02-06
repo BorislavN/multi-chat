@@ -1,67 +1,87 @@
 package app.server.demo.client;
 
+import app.server.demo.Constants;
 import app.server.demo.Logger;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.CompletionStage;
 
 //Example from - https://stackoverflow.com/questions/55380813/require-assistance-with-simple-pure-java-11-websocket-client-example
 //Using java.net.http.WebSocket
 
 //TODO: refactor
 public class DemoClient {
-    private static volatile boolean closeInitiated = false;
-    private static final Timer timer = new Timer();
+    private final BufferedReader bufferedReader;
+    private final WebSocket webSocket;
+    private final Listener listener;
+    private final Timer timer;
+    private final Object lock;
 
-    public static void main(String[] args) throws Exception {
+    public DemoClient(int port) {
 //        System.setProperty("jdk.internal.httpclient.websocket.debug", "true");
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        this.bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+        this.timer = new Timer();
+        this.lock = new Object();
 
-        WebSocket client = HttpClient
+        this.listener = new Listener(this.timer, this.lock);
+        this.webSocket = HttpClient
                 .newHttpClient()
                 .newWebSocketBuilder()
-                .buildAsync(URI.create("ws://localhost:80"), new WebSocketClient())
+                .buildAsync(URI.create(String.format("ws://localhost:%d", port)), this.listener)
                 .join();
+    }
 
+    public void start() throws IOException {
         String message;
-        String username = "";
+        String namePrefix = Constants.USERNAME_COMMAND;
 
-        System.out.println("Choose an username:");
-
-        while (username.isBlank()) {
-            username = reader.readLine();
-
-            if (username.isBlank()) {
-                System.out.println("Username cannot be blank!");
-            }
-        }
-
-        System.out.println("Welcome to the chat!");
-        System.out.println("Enter \"QUIT\" to exit.");
-        System.out.println();
-
-        while (!"QUIT".equals(message = reader.readLine())) {
+        while (!"QUIT".equals(message = this.bufferedReader.readLine())) {
             if (message.isBlank()) {
-                System.out.println("Message cannot be blank!");
-
+                System.out.println("Input cannot be blank!");
                 continue;
             }
 
-            client.sendText(String.format("%s: %s", username, message), true);
+            if (message.startsWith(namePrefix)) {
+                if ((message.length() - namePrefix.length()) < Constants.MIN_USERNAME_LENGTH) {
+                    System.out.println("Username too short!");
+                    continue;
+                }
+
+                synchronized (this.lock) {
+                    this.webSocket.sendText(message, true);
+
+                    try {
+                        this.lock.wait();
+                    } catch (InterruptedException e) {
+                        Logger.logError("Wait for username confirmation was interrupted!", e);
+                    }
+
+                    continue;
+                }
+            }
+
+            String currentName = this.listener.getUsername();
+
+            if (currentName.isBlank()) {
+                System.out.println("Cannot send messages, without first choosing an username!");
+                continue;
+            }
+
+            this.webSocket.sendText(String.format("%s: %s", currentName, message), true);
         }
 
-        closeInitiated = true;
-        client.sendClose(1000, "Java client wants to quit").thenRun(closeHandler(client));
+        this.listener.setCloseInitiated(true);
+        this.webSocket.sendClose(1000, "Java client wants to quit").thenRun(closeTimer(this.webSocket));
     }
 
-    private static Runnable closeHandler(WebSocket client) {
+    private Runnable closeTimer(WebSocket client) {
         return () -> {
             TimerTask timerTask = new TimerTask() {
                 @Override
@@ -70,65 +90,12 @@ public class DemoClient {
                 }
             };
 
-            timer.schedule(timerTask, 30000);
+            this.timer.schedule(timerTask, 30000);
         };
     }
 
-    private static class WebSocketClient implements WebSocket.Listener {
-        private StringBuilder stringBuilder;
-
-        public WebSocketClient() {
-            this.stringBuilder = new StringBuilder();
-        }
-
-        @Override
-        public void onOpen(WebSocket webSocket) {
-            System.out.println("Connection established!");
-
-            WebSocket.Listener.super.onOpen(webSocket);
-        }
-
-        @Override
-        public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-            this.stringBuilder.append(data);
-
-            if (last) {
-                System.out.println(this.stringBuilder);
-                this.stringBuilder = new StringBuilder();
-            }
-
-            return WebSocket.Listener.super.onText(webSocket, data, last);
-        }
-
-        @Override
-        public void onError(WebSocket webSocket, Throwable error) {
-            Logger.logError("Exception occurred", error);
-            Logger.logError("Cause", error.getCause());
-
-//            error.printStackTrace();
-
-            WebSocket.Listener.super.onError(webSocket, error);
-        }
-
-        @Override
-        public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
-            if (reason.isBlank()) {
-                reason = "None";
-            }
-
-            System.out.printf("Close frame received - Code: %d, Reason: %s%n", statusCode, reason);
-
-            if (closeInitiated) {
-                timer.cancel();
-                webSocket.abort();
-
-                return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
-            }
-
-            //Echo back close frame
-            webSocket.sendClose(statusCode, reason).thenRun(closeHandler(webSocket));
-
-            return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
-        }
+    public static void main(String[] args) throws IOException {
+        DemoClient client = new DemoClient(80);
+        client.start();
     }
 }

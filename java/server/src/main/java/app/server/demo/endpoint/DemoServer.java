@@ -1,15 +1,16 @@
 package app.server.demo.endpoint;
 
+import app.server.demo.Constants;
 import app.server.demo.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -90,7 +91,11 @@ public class DemoServer {
                         } catch (MalformedFrameException | IllegalArgumentException | IllegalStateException e) {
                             Logger.logError("Exception encountered", e);
 
-                            //TODO: send close request before disconnecting
+                            //TODO: rework, we can send a close request in specific cases - like when the message is too large etc...
+                            // in some cases we will only close the connection and log the error, as the other side of the channel could be closed
+                            ByteBuffer buffer = FrameBuilder.buildCloseFrame(1006, e.getMessage());
+
+                            ChannelHelper.writeBytes((SocketChannel) key.channel(), buffer);
 
                             this.disconnectUser(key);
                         }
@@ -133,17 +138,17 @@ public class DemoServer {
 
                 FrameData lastFrame = connectionData.getLastFrame();
 
-                if ( lastFrame.isReadCompleted()){
-                   Logger.log(lastFrame.getMessage());
+                if (lastFrame.isReadCompleted()) {
+                    Logger.log(lastFrame.getMessage());
 
-                   switch (lastFrame.getOpcode()) {
-                       case 0, 1 -> this.handleMessage(connectionData, lastFrame);
+                    switch (lastFrame.getOpcode()) {
+                        case 0, 1 -> this.handleMessage(connectionData, lastFrame);
 
-                       case 8 -> this.handleCloseRequest(connectionData, lastFrame);
+                        case 8 -> this.handleCloseRequest(connectionData, lastFrame);
 
-                       case 9 -> this.handlePingRequest(connectionData, lastFrame);
-                   }
-               }
+                        case 9 -> this.handlePingRequest(connectionData, lastFrame);
+                    }
+                }
             }
 
             if (!connectionData.wasUpgraded()) {
@@ -192,8 +197,13 @@ public class DemoServer {
     }
 
     private void handlePingRequest(ConnectionData connectionData, FrameData frameData) {
-        System.out.println("Received PING!!!!!");
-        //TODO: create pong frame, enqueue priority
+        if (this.isFragment(frameData)) {
+            throw new IllegalStateException("Control frames cannot be fragmented!");
+        }
+
+        connectionData.setReceivedPing(true);
+
+        connectionData.enqueuePriorityMessage(FrameBuilder.buildPongFrame(frameData));
     }
 
     private void handleMessage(ConnectionData connectionData, FrameData frameData) {
@@ -204,6 +214,45 @@ public class DemoServer {
 
             if (frameData.isFinished()) {
                 this.enqueueFragmentsToAllUsers(connectionData);
+            }
+
+            return;
+        }
+
+        if (frameData.getMessage().startsWith(Constants.USERNAME_COMMAND)) {
+            String name = frameData.getMessage().substring(Constants.USERNAME_COMMAND.length());
+            ByteBuffer signalFrame = FrameBuilder.buildFrame(true, 1, Constants.USERNAME_COMMAND.getBytes(StandardCharsets.UTF_8));
+
+            if (name.length() < Constants.MIN_USERNAME_LENGTH) {
+                connectionData.enqueuePriorityMessage(signalFrame);
+                connectionData.enqueuePriorityMessage(FrameBuilder.buildFrame(true, 1, "Username too short!".getBytes(StandardCharsets.UTF_8)));
+
+                return;
+            }
+
+            for (ConnectionData data : this.activeConnections.values()) {
+                if (!connectionData.equals(data) && data.getUsername().equals(name)) {
+                    connectionData.enqueuePriorityMessage(signalFrame);
+                    connectionData.enqueuePriorityMessage(FrameBuilder.buildFrame(true, 1, "Username taken!".getBytes(StandardCharsets.UTF_8)));
+
+                    return;
+                }
+            }
+
+            String oldName = connectionData.getUsername();
+
+            connectionData.enqueuePriorityMessage(frame);
+
+            if (!name.equals(oldName)) {
+                String message = String.format("%s joined the chat!", name);
+
+                if (oldName != null) {
+                    message = String.format("%s changed their name to %s.", oldName, name);
+                }
+
+                connectionData.setUsername(name);
+
+                this.enqueueToAllUsers(FrameBuilder.buildFrame(true, 1, message.getBytes(StandardCharsets.UTF_8)));
             }
 
             return;

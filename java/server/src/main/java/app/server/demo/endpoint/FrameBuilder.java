@@ -61,10 +61,12 @@ public class FrameBuilder {
     }
 
 
-    public static String buildPongFrame(String request) {
+    public static ByteBuffer buildPongFrame(FrameData frameData) {
+        byte firstByte = (byte) (frameData.getFirstByte() & 10);
 
+        frameData.getMetadata().put(0, firstByte);
 
-        return "";
+        return buildFrame(frameData);
     }
 
     public static ByteBuffer buildFrame(FrameData frameData) {
@@ -76,12 +78,12 @@ public class FrameBuilder {
 
         if (secondByte == 127) {
             newFrame = ByteBuffer.allocate(10 + payload.length);
-            newFrame.put(2, frameData.getExtendedLength(),0,8);
+            newFrame.put(2, frameData.getExtendedLength(), 0, 8);
             newFrame.put(10, payload);
 
         } else if (secondByte == 126) {
             newFrame = ByteBuffer.allocate(4 + payload.length);
-            newFrame.put(2, frameData.getExtendedLength(),0,2);
+            newFrame.put(2, frameData.getExtendedLength(), 0, 2);
             newFrame.put(4, payload);
 
         } else {

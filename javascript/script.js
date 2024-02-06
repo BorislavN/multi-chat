@@ -20,9 +20,25 @@ socket.addEventListener("open", (event) => {
 });
 
 socket.addEventListener("message", (event) => {
+  let message =event.data;
+  const namePrefix="#user";
+
+  if(message.startsWith(namePrefix)){
+    let temp=message.substring(namePrefix.length);
+
+    if(temp.length>0){
+      currentName=temp;
+      this.showMainPage();
+    }else{
+      this.showLoginError("Invalid username!")
+    }
+    
+    return;
+  }
+
   let isAtBottom = (textArea.scrollTop+textArea.clientHeight) === textArea.scrollHeight;
 
-  textArea.value += `${event.data}\n`;
+  textArea.value += `${message}\n`;
 
   if (isAtBottom) {
     textArea.scrollTop = textArea.scrollHeight;
@@ -62,14 +78,15 @@ function onJoinClick() {
     return;
   }
 
-  //Check if username is taken
+  socket.send(`#user${value}`);
+};
 
+function showMainPage(){
   loginError.style.opacity = "0";
-  currentName = value;
 
   this.setGreeting();
   this.toggleVisibility();
-};
+}
 
 function onSendClick() {
   let value = this.escapeString(messageInput.value);
@@ -131,10 +148,6 @@ function showLoginError(message) {
 function validateText(text) {
   if (text.trim().length === 0) {
     return "Can not be blank!";
-  }
-
-  if (text.includes("|")) {
-    return "Can not include \"|\"!";
   }
 
   return "valid";
