@@ -6,16 +6,6 @@ import java.nio.ByteBuffer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-//TODO: implement this class, refactor the code to use it instead of FrameData
-// as by the RFC - in the absence of extensions, the implementations should not depend on specific frame boundaries
-// currently my code depends on the clients sending the whole frame
-// This is not a problem with the js implementation (it sends whole frames - both fragmented and not), but exceptions occur withe the java WebSocket
-// the java implementation has an internal buffer of around 16000, and when splitting a large message,
-// some payload bytes are cut, providing an incomplete frame
-// this triggers exception in my server implementation, as it expects to get the payload in one go
-// the problem can be masked by using a while loop when reading, it will wait the necessary time,
-// but that opens a possibility that one slow connection will stall the whole server. Given the fact that im using a single thread and a selector,
-// this class aims to  reduce latency
 public class FrameData {
     private int stage;
     private int attempts;
@@ -57,13 +47,11 @@ public class FrameData {
     }
 
     public ByteBuffer getMetadata() {
-        return this.metadata;
-    }
-
-    public void initMetadata() {
         if (this.metadata == null) {
             this.metadata = ByteBuffer.allocate(2);
         }
+
+        return this.metadata;
     }
 
     public ByteBuffer getExtendedLength() {
@@ -77,14 +65,13 @@ public class FrameData {
     }
 
     public ByteBuffer getMask() {
-        return this.mask;
-    }
-
-    public void initMask() {
         if (this.mask == null) {
             this.mask = ByteBuffer.allocate(4);
         }
+
+        return this.mask;
     }
+
 
     public ByteBuffer getPayload() {
         return this.payload;

@@ -35,12 +35,14 @@ public class ChannelHelper {
         return message.toString();
     }
 
-    public static void readBytes(SocketChannel connection, ByteBuffer buffer) throws IOException {
+    public static boolean readBytes(SocketChannel connection, ByteBuffer buffer) throws IOException {
         int bytesRead = connection.read(buffer);
 
         if (bytesRead == -1) {
             throw new IllegalStateException("Connection closed!");
         }
+
+        return bytesRead == buffer.capacity();
     }
 
     public static void writeBytes(SocketChannel connection, ByteBuffer buffer) throws IOException {

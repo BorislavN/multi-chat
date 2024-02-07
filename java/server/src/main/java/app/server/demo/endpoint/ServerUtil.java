@@ -50,10 +50,7 @@ public class ServerUtil {
             lastFrame.incrementAttempts();
 
             if (lastFrame.getStage() == 0) {
-                lastFrame.initMetadata();
-                ChannelHelper.readBytes(connection, lastFrame.getMetadata());
-
-                if (lastFrame.getMetadata().hasRemaining()) {
+                if (!ChannelHelper.readBytes(connection, lastFrame.getMetadata())) {
                     return;
                 }
 
@@ -73,10 +70,8 @@ public class ServerUtil {
             }
 
             if (lastFrame.getStage() == 2) {
-                lastFrame.initMask();
-                ChannelHelper.readBytes(connection, lastFrame.getMask());
 
-                if (lastFrame.getMask().hasRemaining()) {
+                if (!ChannelHelper.readBytes(connection, lastFrame.getMask())) {
                     return;
                 }
 
@@ -85,9 +80,8 @@ public class ServerUtil {
 
             if (lastFrame.getStage() == 3) {
                 lastFrame.initPayload(lastFrame.getPayloadLength());
-                ChannelHelper.readBytes(connection, lastFrame.getPayload());
 
-                if (lastFrame.getPayload().hasRemaining()) {
+                if (!ChannelHelper.readBytes(connection, lastFrame.getPayload())) {
                     return;
                 }
 

@@ -31,19 +31,10 @@ socket.addEventListener("open", (event) => {
 });
 */
 
-//An approach to avoid buffering the fragmented messages at the server, wold be
-//to define an extension, which adds a 2 byte messageId at the start of the payload
-//and using a reserved bit / reserved opcode to signal the use of an extension.
-//Although this sounds nice, the current java / javascript implementation does not allow to specify extensions
-//before initiating the handshake. So what..., we will set a custom opcode without specifying an extension...
-//Yea, and the implementations throw an "unrecognized frame opcode" exception :D
-//Soo, there is no way to implement it currently, without writing my own implementation
-//
-//Another approach is to define some sub-protocol, for example one using JSON,
-//with a field for messageId / other metadata, the server will send these JSONs as completed frames, and the client will
-//interpret the metadata and act accordingly, even if there was an intermediary (there is not, we are running this in localhost), one that decides to split our frame,
-//the client should buffer the fragmented frame before parsing the JSON, avoiding potential exceptions
-
+//TODO: needs refactoring
+// 1: ping/pong functionality
+// 2: the error handling
+// 3: frame building
 public class DemoServer {
     private ServerSocketChannel server;
     private Selector selector;
@@ -73,39 +64,41 @@ public class DemoServer {
 
     public void start() {
         if (this.isRunning()) {
-            try {
-                while (!this.activeConnections.isEmpty() || !this.receivedConnection) {
+            while (!this.activeConnections.isEmpty() || !this.receivedConnection) {
+                try {
                     this.selector.select();
+                } catch (IOException e) {
+                    Logger.logAsError("Select failed!");
+                }
 
-                    Iterator<SelectionKey> iterator = this.selector.selectedKeys().iterator();
+                Iterator<SelectionKey> iterator = this.selector.selectedKeys().iterator();
 
-                    while (iterator.hasNext()) {
-                        SelectionKey key = iterator.next();
+                while (iterator.hasNext()) {
+                    SelectionKey key = iterator.next();
+
+                    try {
+                        this.handleIncomingConnections(key);
+
+                        this.handleIncomingMessages(key);
+
+                        this.handleQueuedMessages(key);
+
+                    } catch (MalformedFrameException | IllegalArgumentException | IllegalStateException |
+                             IOException e) {
+                        Logger.logError("Exception encountered", e);
 
                         try {
-                            this.handleIncomingConnections(key);
-
-                            this.handleIncomingMessages(key);
-
-                            this.handleQueuedMessages(key);
-
-                        } catch (MalformedFrameException | IllegalArgumentException | IllegalStateException e) {
-                            Logger.logError("Exception encountered", e);
-
-                            //TODO: rework, we can send a close request in specific cases - like when the message is too large etc...
-                            // in some cases we will only close the connection and log the error, as the other side of the channel could be closed
-                            ByteBuffer buffer = FrameBuilder.buildCloseFrame(1006, e.getMessage());
-
+                            ByteBuffer buffer = FrameBuilder.buildCloseFrame(1002, e.getMessage());
                             ChannelHelper.writeBytes((SocketChannel) key.channel(), buffer);
-
-                            this.disconnectUser(key);
+                        } catch (IOException edas) {
+                            Logger.logAsError("Failed to send close frame!");
                         }
 
-                        iterator.remove();
+                        this.disconnectUser(key);
                     }
+
+                    iterator.remove();
                 }
-            } catch (IOException e) {
-                Logger.logError("IOException encountered", e);
             }
 
             this.shutdown();
@@ -254,10 +247,10 @@ public class DemoServer {
                 String oldName = connectionData.getUsername();
 
                 if (!name.equals(oldName)) {
-                    String announcment = String.format("%s joined the chat!", name);
+                    String announcment = String.format("\"%s\" joined the chat!", name);
 
                     if (oldName != null) {
-                        announcment = String.format("%s changed their name to %s.", oldName, name);
+                        announcment = String.format("\"%s\" changed their name to \"%s\".", oldName, name);
                     }
 
                     connectionData.setUsername(name);
@@ -311,7 +304,17 @@ public class DemoServer {
 
             key.cancel();
             key.channel().close();
-            this.activeConnections.remove(connectionId);
+            ConnectionData removed = this.activeConnections.remove(connectionId);
+
+            if (removed.getUsername() != null) {
+                ByteBuffer announcement = FrameBuilder.buildFrame(
+                        true,
+                        1,
+                        String.format("\"%s\" left the chat...", removed.getUsername()).getBytes(UTF_8)
+                );
+
+                this.enqueueToAllUsers(announcement);
+            }
 
         } catch (IOException e) {
             Logger.logError("Encountered exception while attempting to close channel", e);
