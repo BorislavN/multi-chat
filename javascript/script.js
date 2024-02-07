@@ -1,4 +1,9 @@
 var currentName;
+
+const COMMAND_DELIMITER = "@";
+const ACCEPTED_FLAG = "accepted";
+const ERROR_FLAG = "error";
+
 const loginDiv = document.getElementById("login");
 const loginError = document.getElementById("loginError");
 const usernameInput = document.getElementById("usernameField");
@@ -20,23 +25,27 @@ socket.addEventListener("open", (event) => {
 });
 
 socket.addEventListener("message", (event) => {
-  let message =event.data;
-  const namePrefix="#user";
+  let message = event.data;
 
-  if(message.startsWith(namePrefix)){
-    let temp=message.substring(namePrefix.length);
+  let isAccepted = message.startsWith(ACCEPTED_FLAG.concat(COMMAND_DELIMITER));
+  let isError = message.startsWith(ERROR_FLAG.concat(COMMAND_DELIMITER));
 
-    if(temp.length>0){
-      currentName=temp;
-      this.showMainPage();
-    }else{
-      this.showLoginError("Invalid username!")
+  if (isAccepted || isError) {
+    let parts = message.split(COMMAND_DELIMITER);
+
+    if (isError) {
+      this.showLoginError(parts[1]);
     }
-    
+
+    if (isAccepted) {
+      currentName = parts[1];
+      this.showMainPage();
+    }
+
     return;
   }
 
-  let isAtBottom = (textArea.scrollTop+textArea.clientHeight) === textArea.scrollHeight;
+  let isAtBottom = (textArea.scrollTop + textArea.clientHeight) === textArea.scrollHeight;
 
   textArea.value += `${message}\n`;
 
@@ -52,15 +61,12 @@ socket.addEventListener("error", (event) => {
 
   this.disableAllButtons();
 
-  this.showLoginError("Exception occurred!");
-  this.setGreeting("Exception occurred!")
+  this.showLoginError(message);
+  this.setGreeting(message);
 });
 
 socket.addEventListener("close", (event) => {
   this.disableAllButtons();
-
-  //Echo back close frame
-  socket.close(event.code);
 
   this.showLoginError("Connection closed!");
   this.setGreeting("Connection closed!")
@@ -78,10 +84,10 @@ function onJoinClick() {
     return;
   }
 
-  socket.send(`#user${value}`);
+  socket.send(`${COMMAND_DELIMITER}${value}`);
 };
 
-function showMainPage(){
+function showMainPage() {
   loginError.style.opacity = "0";
 
   this.setGreeting();

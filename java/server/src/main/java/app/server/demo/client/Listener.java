@@ -1,6 +1,5 @@
 package app.server.demo.client;
 
-import app.server.demo.Constants;
 import app.server.demo.Logger;
 
 import java.net.http.WebSocket;
@@ -8,8 +7,10 @@ import java.util.Timer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import static app.server.demo.Constants.*;
+
 public class Listener implements WebSocket.Listener {
-    private volatile String username;
+    private volatile boolean usernameApproved;
     private volatile boolean closeInitiated;
     private StringBuilder stringBuilder;
     private CompletableFuture<?> messageStage;
@@ -19,10 +20,14 @@ public class Listener implements WebSocket.Listener {
     public Listener(Timer timer, Object lock) {
         this.stringBuilder = new StringBuilder();
         this.messageStage = new CompletableFuture<>();
-        this.username = "";
+        this.usernameApproved = false;
         this.closeInitiated = false;
         this.timer = timer;
         this.lock = lock;
+    }
+
+    public boolean isUsernameApproved() {
+        return this.usernameApproved;
     }
 
     public boolean isCloseInitiated() {
@@ -33,18 +38,10 @@ public class Listener implements WebSocket.Listener {
         this.closeInitiated = closeInitiated;
     }
 
-    public String getUsername() {
-        return this.username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
     @Override
     public void onOpen(WebSocket webSocket) {
         System.out.println("Connection established!");
-        System.out.printf("Enter \"%s\" to choose an username (without space).%n", Constants.USERNAME_COMMAND);
+        System.out.printf("Enter \"%sName\" to choose an username.%n", COMMAND_DELIMITER);
         System.out.println("Enter \"QUIT\" to exit.");
         System.out.println();
 
@@ -55,12 +52,20 @@ public class Listener implements WebSocket.Listener {
     public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
         String message = data.toString();
 
-        if (message.startsWith(Constants.USERNAME_COMMAND)) {
-            String name = message.substring(Constants.USERNAME_COMMAND.length());
+        boolean isAccepted = message.startsWith(ACCEPTED_FLAG.concat(COMMAND_DELIMITER));
+        boolean isError = message.startsWith(ERROR_FLAG.concat(COMMAND_DELIMITER));
+
+        if (isError || isAccepted) {
+            String[] parts = message.split(COMMAND_DELIMITER);
 
             synchronized (this.lock) {
-                if (!name.isBlank()) {
-                    this.username = name;
+                if (isAccepted) {
+                    this.usernameApproved = true;
+                }
+
+                if (isError) {
+                    this.usernameApproved = false;
+                    System.out.println(parts[1]);
                 }
 
                 this.lock.notify();
@@ -109,13 +114,12 @@ public class Listener implements WebSocket.Listener {
         if (this.closeInitiated) {
             this.timer.cancel();
             webSocket.abort();
+
         } else {
             System.out.println("Please enter \"QUIT\" to exit the application!");
+            this.closeInitiated = true;
         }
 
         return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
-
-        //Echo back close frame
-//            webSocket.sendClose(statusCode, reason).thenRun(closeHandler(webSocket));
     }
 }

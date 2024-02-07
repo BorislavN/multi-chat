@@ -1,6 +1,5 @@
 package app.server.demo.client;
 
-import app.server.demo.Constants;
 import app.server.demo.Logger;
 
 import java.io.BufferedReader;
@@ -12,14 +11,13 @@ import java.net.http.WebSocket;
 import java.util.Timer;
 import java.util.TimerTask;
 
-//Example from - https://stackoverflow.com/questions/55380813/require-assistance-with-simple-pure-java-11-websocket-client-example
-//Using java.net.http.WebSocket
+import static app.server.demo.Constants.COMMAND_DELIMITER;
 
-//TODO: refactor
 public class DemoClient {
     private final BufferedReader bufferedReader;
     private final WebSocket webSocket;
     private final Listener listener;
+    private String username;
     private final Timer timer;
     private final Object lock;
 
@@ -29,6 +27,7 @@ public class DemoClient {
         this.bufferedReader = new BufferedReader(new InputStreamReader(System.in));
         this.timer = new Timer();
         this.lock = new Object();
+        this.username = null;
 
         this.listener = new Listener(this.timer, this.lock);
         this.webSocket = HttpClient
@@ -40,7 +39,6 @@ public class DemoClient {
 
     public void start() throws IOException {
         String message;
-        String namePrefix = Constants.USERNAME_COMMAND;
 
         while (!"QUIT".equals(message = this.bufferedReader.readLine())) {
             if (message.isBlank()) {
@@ -48,45 +46,44 @@ public class DemoClient {
                 continue;
             }
 
-            if (message.startsWith(namePrefix)) {
-                if ((message.length() - namePrefix.length()) < Constants.MIN_USERNAME_LENGTH) {
-                    System.out.println("Username too short!");
-                    continue;
-                }
-
+            if (message.startsWith(COMMAND_DELIMITER)) {
                 synchronized (this.lock) {
                     this.webSocket.sendText(message, true);
 
                     try {
-                        this.lock.wait();
+                        this.lock.wait(5000);
+
+                        if (this.listener.isUsernameApproved()) {
+                            this.username = message.substring(COMMAND_DELIMITER.length());
+                        }
                     } catch (InterruptedException e) {
                         Logger.logError("Wait for username confirmation was interrupted!", e);
                     }
-
-                    continue;
                 }
+
+                continue;
             }
 
-            String currentName = this.listener.getUsername();
-
-            if (currentName.isBlank()) {
+            if (this.username == null) {
                 System.out.println("Cannot send messages, without first choosing an username!");
                 continue;
             }
 
-            this.webSocket.sendText(String.format("%s: %s", currentName, message), true);
+            this.webSocket.sendText(String.format("%s: %s", this.username, message), true);
         }
 
-        this.listener.setCloseInitiated(true);
-        this.webSocket.sendClose(1000, "Java client wants to quit").thenRun(closeTimer(this.webSocket));
+        if (!this.listener.isCloseInitiated()) {
+            this.listener.setCloseInitiated(true);
+            this.webSocket.sendClose(1000, "Java client wants to quit").thenRun(closeTimer());
+        }
     }
 
-    private Runnable closeTimer(WebSocket client) {
+    private Runnable closeTimer() {
         return () -> {
             TimerTask timerTask = new TimerTask() {
                 @Override
                 public void run() {
-                    client.abort();
+                    webSocket.abort();
                 }
             };
 

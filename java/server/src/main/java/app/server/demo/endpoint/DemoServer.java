@@ -1,6 +1,5 @@
 package app.server.demo.endpoint;
 
-import app.server.demo.Constants;
 import app.server.demo.Logger;
 
 import java.io.IOException;
@@ -10,11 +9,13 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
+import static app.server.demo.Constants.*;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /*JS code required:
 const socket = new WebSocket("ws://localhost:80");
@@ -142,11 +143,11 @@ public class DemoServer {
                     Logger.log(lastFrame.getMessage());
 
                     switch (lastFrame.getOpcode()) {
-                        case 0, 1 -> this.handleMessage(connectionData, lastFrame);
+                        case 0, 1 -> this.handleMessage(connectionData);
 
-                        case 8 -> this.handleCloseRequest(connectionData, lastFrame);
+                        case 8 -> this.handleCloseRequest(connectionData);
 
-                        case 9 -> this.handlePingRequest(connectionData, lastFrame);
+                        case 9 -> this.handlePingRequest(connectionData);
                     }
                 }
             }
@@ -186,83 +187,106 @@ public class DemoServer {
         }
     }
 
-    private void handleCloseRequest(ConnectionData connectionData, FrameData frameData) {
-        if (this.isFragment(frameData)) {
+    private void handleCloseRequest(ConnectionData connectionData) {
+        if (this.isFragment(connectionData.getLastFrame())) {
             throw new IllegalStateException("Control frames cannot be fragmented!");
         }
 
         connectionData.setReceivedClose(true);
-
-        connectionData.enqueuePriorityMessage(FrameBuilder.buildFrame(frameData));
+        connectionData.enqueuePriorityMessage(FrameBuilder.buildFrame(connectionData.getLastFrame()));
     }
 
-    private void handlePingRequest(ConnectionData connectionData, FrameData frameData) {
-        if (this.isFragment(frameData)) {
+    private void handlePingRequest(ConnectionData connectionData) {
+        if (this.isFragment(connectionData.getLastFrame())) {
             throw new IllegalStateException("Control frames cannot be fragmented!");
         }
 
         connectionData.setReceivedPing(true);
 
-        connectionData.enqueuePriorityMessage(FrameBuilder.buildPongFrame(frameData));
+        connectionData.enqueuePriorityMessage(FrameBuilder.buildPongFrame(connectionData.getLastFrame()));
     }
 
-    private void handleMessage(ConnectionData connectionData, FrameData frameData) {
-        ByteBuffer frame = FrameBuilder.buildFrame(frameData);
+    private void handleMessage(ConnectionData connectionData) {
+        ByteBuffer frame = FrameBuilder.buildFrame(connectionData.getLastFrame());
 
-        if (this.isFragment(frameData)) {
-            connectionData.addFragment(frame);
-
-            if (frameData.isFinished()) {
-                this.enqueueFragmentsToAllUsers(connectionData);
-            }
-
+        if (this.handleFragment(connectionData, frame)) {
             return;
         }
 
-        if (frameData.getMessage().startsWith(Constants.USERNAME_COMMAND)) {
-            String name = frameData.getMessage().substring(Constants.USERNAME_COMMAND.length());
-            ByteBuffer signalFrame = FrameBuilder.buildFrame(true, 1, Constants.USERNAME_COMMAND.getBytes(StandardCharsets.UTF_8));
-
-            if (name.length() < Constants.MIN_USERNAME_LENGTH) {
-                connectionData.enqueuePriorityMessage(signalFrame);
-                connectionData.enqueuePriorityMessage(FrameBuilder.buildFrame(true, 1, "Username too short!".getBytes(StandardCharsets.UTF_8)));
-
-                return;
-            }
-
-            for (ConnectionData data : this.activeConnections.values()) {
-                if (!connectionData.equals(data) && data.getUsername().equals(name)) {
-                    connectionData.enqueuePriorityMessage(signalFrame);
-                    connectionData.enqueuePriorityMessage(FrameBuilder.buildFrame(true, 1, "Username taken!".getBytes(StandardCharsets.UTF_8)));
-
-                    return;
-                }
-            }
-
-            String oldName = connectionData.getUsername();
-
-            connectionData.enqueuePriorityMessage(frame);
-
-            if (!name.equals(oldName)) {
-                String message = String.format("%s joined the chat!", name);
-
-                if (oldName != null) {
-                    message = String.format("%s changed their name to %s.", oldName, name);
-                }
-
-                connectionData.setUsername(name);
-
-                this.enqueueToAllUsers(FrameBuilder.buildFrame(true, 1, message.getBytes(StandardCharsets.UTF_8)));
-            }
-
+        if (this.handleUsernameSelection(connectionData)) {
             return;
         }
 
         this.enqueueToAllUsers(frame);
     }
 
+    private boolean handleFragment(ConnectionData connectionData, ByteBuffer frame) {
+        if (this.isFragment(connectionData.getLastFrame())) {
+            connectionData.addFragment(frame);
+
+            if (connectionData.getLastFrame().isFinished()) {
+                this.enqueueFragmentsToAllUsers(connectionData);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean handleUsernameSelection(ConnectionData connectionData) {
+        FrameData lastFrame = connectionData.getLastFrame();
+
+        if (lastFrame.getMessage().startsWith(COMMAND_DELIMITER)) {
+            String name = lastFrame.getMessage().substring(COMMAND_DELIMITER.length());
+            String responseText = null;
+
+            if (name.length() < MIN_USERNAME_LENGTH) {
+                responseText = String.format("%s%sMust be least %d chars!", ERROR_FLAG, COMMAND_DELIMITER, MIN_USERNAME_LENGTH);
+            }
+
+            if (responseText == null && !this.isUsernameAvailable(connectionData, name)) {
+                responseText = String.format("%s%sUsername is taken!", ERROR_FLAG, COMMAND_DELIMITER);
+            }
+
+            if (responseText == null) {
+                responseText = String.format("%s%s%s", ACCEPTED_FLAG, COMMAND_DELIMITER, name);
+                String oldName = connectionData.getUsername();
+
+                if (!name.equals(oldName)) {
+                    String announcment = String.format("%s joined the chat!", name);
+
+                    if (oldName != null) {
+                        announcment = String.format("%s changed their name to %s.", oldName, name);
+                    }
+
+                    connectionData.setUsername(name);
+
+                    this.enqueueToAllUsers(FrameBuilder.buildFrame(true, 1, announcment.getBytes(UTF_8)));
+                }
+            }
+
+            ByteBuffer response = FrameBuilder.buildFrame(true, 1, responseText.getBytes(UTF_8));
+            connectionData.enqueuePriorityMessage(response);
+
+            return true;
+        }
+
+        return false;
+    }
+
     private boolean isFragment(FrameData frameData) {
         return !frameData.isFinished() || frameData.getOpcode() == 0;
+    }
+
+    private boolean isUsernameAvailable(ConnectionData connectionData, String username) {
+        for (ConnectionData value : this.activeConnections.values()) {
+            if (value != connectionData && username.equals(value.getUsername())) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private void enqueueFragmentsToAllUsers(ConnectionData connectionData) {
@@ -279,16 +303,6 @@ public class DemoServer {
         for (ConnectionData value : this.activeConnections.values()) {
             value.enqueueMessage(frame);
         }
-    }
-
-    private boolean isUsernameAvailable(String username) {
-        for (ConnectionData value : this.activeConnections.values()) {
-            if (value.getUsername().equals(username)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private void disconnectUser(SelectionKey key) {
