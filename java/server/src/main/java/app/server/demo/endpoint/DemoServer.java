@@ -1,6 +1,6 @@
 package app.server.demo.endpoint;
 
-import app.server.demo.Logger;
+import app.util.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -14,7 +14,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static app.server.demo.Constants.*;
+import static app.util.Constants.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /*JS code required:

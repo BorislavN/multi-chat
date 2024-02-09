@@ -1,5 +1,4 @@
-package app.server.demo.client;
-
+package app.client.websocket.minimal;
 
 import app.util.Logger;
 

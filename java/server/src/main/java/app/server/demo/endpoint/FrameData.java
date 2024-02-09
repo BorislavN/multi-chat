@@ -1,6 +1,7 @@
 package app.server.demo.endpoint;
 
-import app.server.demo.Constants;
+
+import app.util.Constants;
 
 import java.nio.ByteBuffer;
 

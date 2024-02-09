@@ -1,7 +1,7 @@
 package app.server.demo.endpoint;
 
 
-import app.server.demo.Constants;
+import app.util.Constants;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

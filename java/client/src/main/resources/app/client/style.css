@@ -1,0 +1,28 @@
+.root {
+    -fx-background-color: #c9c7c7;
+    -fx-font-size: 18;
+}
+
+.label{
+    -fx-font-weight: bold;
+}
+
+#announcement{
+    -fx-background-radius: 6;
+}
+
+#errorMessage {
+    -fx-background-radius: 6;
+    -fx-background-color: #eb4d42;
+    -fx-text-fill: #f2f2f2;
+}
+
+.button{
+    -fx-background-color: #515254;
+    -fx-text-fill: #f2f2f2;
+    -fx-cursor: hand;
+}
+
+.text-area{
+    -fx-font-size: 16;
+}

@@ -1,5 +1,4 @@
-package app.server.demo.client;
-
+package app.client.websocket.minimal;
 
 import app.util.Logger;
 
@@ -14,7 +13,7 @@ import java.util.TimerTask;
 
 import static app.util.Constants.COMMAND_DELIMITER;
 
-public class DemoClient {
+public class Client {
     private final BufferedReader bufferedReader;
     private final WebSocket webSocket;
     private final Listener listener;
@@ -22,7 +21,7 @@ public class DemoClient {
     private final Timer timer;
     private final Object lock;
 
-    public DemoClient(int port) {
+    public Client(int port) {
 //        System.setProperty("jdk.internal.httpclient.websocket.debug", "true");
 
         this.bufferedReader = new BufferedReader(new InputStreamReader(System.in));
@@ -93,7 +92,7 @@ public class DemoClient {
     }
 
     public static void main(String[] args) throws IOException {
-        DemoClient client = new DemoClient(80);
+        Client client = new Client(80);
         client.start();
     }
 }

@@ -1,4 +1,4 @@
-package app.server.demo;
+package app.util;
 
 public class Constants {
     public static final int MESSAGE_LIMIT = 10240;
