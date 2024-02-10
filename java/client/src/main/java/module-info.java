@@ -6,8 +6,6 @@ module app.client {
     requires javafx.fxml;
 
     opens app.client to javafx.fxml;
-    opens app.client.fx to javafx.fxml;
 
     exports app.client;
-    exports app.client.fx;
 }

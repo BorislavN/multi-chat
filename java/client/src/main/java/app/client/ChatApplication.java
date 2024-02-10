@@ -1,6 +1,5 @@
 package app.client;
 
-import app.client.fx.ChatController;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;

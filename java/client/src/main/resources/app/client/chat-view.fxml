@@ -4,7 +4,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="app.client.fx.ChatController">
+      fx:controller="app.client.ChatController">
 
     <VBox fx:id="usernamePage" alignment="CENTER" prefHeight="337.0" prefWidth="412.0" spacing="20.0">
         <padding>
@@ -22,20 +22,12 @@
                textAlignment="CENTER">
         </Label>
         <TextField fx:id="usernameInput" onAction="#onEnter" style="-fx-background-radius: 2;"/>
-        <HBox alignment="TOP_CENTER" prefHeight="100.0" prefWidth="200.0" spacing="5.0">
             <Button fx:id="joinBtn" alignment="CENTER" mnemonicParsing="false" onAction="#onJoinClick"
                     style=" -fx-background-radius: 6;" text="Join">
                 <padding>
-                    <Insets bottom="15.0" left="20.0" right="20.0" top="15.0"/>
+                    <Insets bottom="12.0" left="25.0" right="25.0" top="12.0"/>
                 </padding>
             </Button>
-            <Button alignment="CENTER" mnemonicParsing="false" onAction="#onShowSettings"
-                    style=" -fx-background-radius: 6;" text="Settings">
-                <padding>
-                    <Insets bottom="15.0" left="20.0" right="20.0" top="15.0"/>
-                </padding>
-            </Button>
-        </HBox>
     </VBox>
 
     <VBox fx:id="mainPage" alignment="TOP_CENTER" managed="false" minHeight="500" minWidth="450" visible="false">
