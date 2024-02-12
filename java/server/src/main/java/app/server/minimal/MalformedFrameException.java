@@ -1,4 +1,4 @@
-package app.server.demo.endpoint;
+package app.server.minimal;
 
 public class MalformedFrameException extends RuntimeException{
     public MalformedFrameException(String message) {

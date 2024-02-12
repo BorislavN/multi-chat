@@ -1,4 +1,4 @@
-package app.server.demo.endpoint;
+package app.server.minimal;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
