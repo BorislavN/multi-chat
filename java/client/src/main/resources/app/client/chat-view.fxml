@@ -48,7 +48,7 @@
             <Button fx:id="sendBtn" mnemonicParsing="false" onAction="#onSend" style="-fx-background-radius: 3;"
                     text="Send">
             </Button>
-            <Button mnemonicParsing="false" onAction="#onChangeName" style="-fx-background-radius: 3;"
+            <Button fx:id="changeBtn" mnemonicParsing="false" onAction="#onChangeName" style="-fx-background-radius: 3;"
                     text="Change name">
             </Button>
             <VBox.margin>

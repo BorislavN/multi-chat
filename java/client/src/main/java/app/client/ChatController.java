@@ -1,7 +1,7 @@
 package app.client;
 
 import app.client.websocket.minimal.Client;
-import javafx.collections.ListChangeListener;
+import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
@@ -27,84 +27,74 @@ public class ChatController {
     @FXML
     private Label announcement;
     @FXML
+    private Button changeBtn;
+    @FXML
     private TextArea textArea;
     @FXML
     private TextField messageInput;
     @FXML
     private Button sendBtn;
     private Client client;
+    private String username;
 
     public ChatController() {
         this.client = null;
+        this.username = null;
     }
 
     @FXML
     public void onJoinClick(ActionEvent actionEvent) {
         actionEvent.consume();
 
+        this.clearError();
+
         String username = this.usernameInput.getText();
 
         if (username.length() < MIN_USERNAME_LENGTH) {
-            this.errorMessage.setText(String.format("Username too short, min: %d chars!", MIN_USERNAME_LENGTH));
-            this.errorMessage.setVisible(true);
+            this.showError(String.format("Username too short, min: %d chars!", MIN_USERNAME_LENGTH));
             return;
         }
 
         if (username.length() > MAX_USERNAME_LENGTH) {
-            this.errorMessage.setText(String.format("Username too long, limit %d chars!", MAX_USERNAME_LENGTH));
-            this.errorMessage.setVisible(true);
+            this.showError(String.format("Username too long, limit %d chars!", MAX_USERNAME_LENGTH));
             return;
         }
 
-        if (!username.equals(this.client.getUsername())) {
-            this.client.sendMessage(COMMAND_DELIMITER.concat(username));
+        if (username.equals(this.username)) {
+            switchPage();
+            return;
         }
 
-        //TODO: show main page if username is accepted, show error if not
-
-//        this.errorMessage.setVisible(false);
-//        this.usernamePage.setManaged(false);
-//        this.usernamePage.setVisible(false);
-//
-//        this.announcement.setText(String.format("Welcome, %s!", this.client.getUsername()));
-//        this.announcement.setStyle("-fx-background-color: #515254");
-//
-//        this.mainPage.setManaged(true);
-//        this.mainPage.setVisible(true);
-//
-//        this.resize();
+        this.client.sendMessage(COMMAND_DELIMITER.concat(username));
     }
 
     @FXML
     public void onSend(ActionEvent actionEvent) {
         actionEvent.consume();
 
+        this.messageInput.setStyle("");
+        this.clearError();
+
         String message = this.messageInput.getText();
 
         if (message.isBlank()) {
             this.messageInput.setStyle("-fx-border-color: red");
-            this.announcement.setText("Message cannot be blank!");
-            this.announcement.setStyle("-fx-background-color: #eb4d42");
+            this.showError("Input cannot be blank!");
             return;
         }
 
         if (message.length() > MESSAGE_LIMIT) {
             this.messageInput.setStyle("-fx-border-color: red");
-            this.announcement.setText(String.format("Message too long, limit %d B", MESSAGE_LIMIT));
-            this.announcement.setStyle("-fx-background-color: #eb4d42");
+            this.showError(String.format("Message too long, limit %d B", MESSAGE_LIMIT));
             return;
         }
 
-        String output = String.format("%s: %s", this.client.getUsername(), message);
-        this.client.sendMessage(output);
+        if (this.username != null) {
+            message = String.format("%s: %s", this.username, message);
+            this.client.sendMessage(message);
 
-        //TODO: reset css if it's showing an error
-
-//        this.announcement.setText(String.format("Welcome, %s!", this.client.getUsername()));
-//        this.announcement.setStyle("-fx-background-color: #515254");
-//
-//        this.messageInput.setStyle("");
-//        this.messageInput.clear();
+            this.messageInput.clear();
+        }
     }
 
     @FXML
@@ -126,44 +116,99 @@ public class ChatController {
     public void onChangeName(ActionEvent actionEvent) {
         actionEvent.consume();
 
-        this.mainPage.setManaged(false);
-        this.mainPage.setVisible(false);
-
-        this.errorMessage.setVisible(false);
-        this.usernamePage.setManaged(true);
-        this.usernamePage.setVisible(true);
-
-        this.resize();
+        this.switchPage();
     }
 
     public void onClose(WindowEvent event, Stage stage) {
-//        event.consume();
-//
-//        if (!"".equals(this.username)) {
-//            //We send it directly through the client, because the service
-//            //uses demon threads and they are terminated when the stage closes
-//            //Thus before the message is delivered
-//            this.client.sendMessage(String.format("%s left the chat...", this.username));
-//        }
-//
-//        if (this.client != null) {
-//            this.client.closeChannel();
-//        }
-//
-//        stage.close();
+        event.consume();
+
+        this.client.closeClient(stage);
     }
 
     public void configureClient() {
+        this.toggleButtons(true);
+
         this.client = new Client(80);
 
-        //TODO: show error and disable buttons if client fails to start
-//        this.joinBtn.setDisable(true);
-//        this.errorMessage.setText("Client failed to initialize!");
-//        this.errorMessage.setVisible(true);
+        this.client.getMessageProperty().addListener(this.messageListener());
+        this.client.getIsConnectedProperty().addListener(this.connectionStateListener());
     }
 
-    //There may be better ways to get the stage
-    private void resize() {
+    //TODO: implement
+    private ChangeListener<String> messageListener() {
+        return (observable, oldValue, newValue) -> {
+            System.out.println("Message listener from " + Thread.currentThread().getName());
+            System.out.println("Message: " + newValue);
+        };
+    }
+
+    //TODO: finish
+    private ChangeListener<Boolean> connectionStateListener() {
+        return (observable, oldValue, newValue) -> {
+
+            System.out.println("State listener from " + Thread.currentThread().getName());
+            System.out.println("Connected: " + newValue);
+
+            if (newValue) {
+                this.toggleButtons(false);
+                return;
+            }
+
+            this.showError("Connection lost!");
+            this.toggleButtons(true);
+        };
+    }
+
+
+    private void showError(String text) {
+        if (this.mainPage.isVisible()) {
+            this.announcement.setStyle("-fx-background-color: #eb4d42");
+            this.announcement.setText(text);
+
+            return;
+        }
+
+        this.errorMessage.setVisible(true);
+        this.errorMessage.setText(text);
+    }
+
+    private void clearError() {
+        if (this.mainPage.isVisible()) {
+            this.announcement.setText(String.format("Welcome, %s!", this.username));
+            this.announcement.setStyle("-fx-background-color: #515254");
+
+            return;
+        }
+
+      this.errorMessage.setVisible(false);
+    }
+
+    private void toggleButtons(boolean disabled) {
+        if (this.mainPage.isVisible()) {
+            this.sendBtn.setDisable(disabled);
+            this.changeBtn.setDisable(disabled);
+
+            return;
+        }
+
+        this.joinBtn.setDisable(disabled);
+    }
+
+    private void switchPage() {
+        if (this.mainPage.isVisible()) {
+            this.setVisibility(this.mainPage, false);
+            this.setVisibility(this.usernamePage, true);
+
+        } else {
+            this.setVisibility(this.usernamePage, false);
+            this.setVisibility(this.mainPage, true);
+        }
+
         this.usernamePage.getScene().getWindow().sizeToScene();
+    }
+
+    private void setVisibility(Node element, boolean value) {
+        element.setManaged(value);
+        element.setVisible(value);
     }
 }

@@ -1,6 +1,9 @@
 package app.client.websocket.minimal;
 
 import app.client.websocket.ChatClient;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.StringProperty;
+import javafx.stage.Stage;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -30,15 +33,22 @@ public class Client implements ChatClient {
     }
 
     @Override
-    public void closeClient() {
+    public void closeClient(Stage stage) {
         if (!this.listener.isCloseInitiated()) {
             this.listener.setCloseInitiated(true);
-            this.webSocket.sendClose(1000, "Java client wants to quit").thenRun(closeTimer());
+            this.webSocket.sendClose(1000, "Fx client wants to quit...").thenRun(closeTimer()).thenRun(stage::close);
         }
     }
 
-    public String getUsername() {
-        return this.listener.getUsername();
+    @Override
+    public StringProperty getMessageProperty() {
+        return this.listener.getLatestMessageProperty();
+    }
+
+    @Override
+    public BooleanProperty getIsConnectedProperty() {
+        return this.listener.getIsConnectedProperty();
+
     }
 
     private Runnable closeTimer() {
