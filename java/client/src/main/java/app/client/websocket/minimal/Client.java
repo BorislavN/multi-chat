@@ -34,9 +34,18 @@ public class Client implements ChatClient {
 
     @Override
     public void closeClient(Stage stage) {
-        if (!this.listener.isCloseInitiated()) {
+        if (!this.listener.getIsConnectedProperty().getValue()) {
+            this.timer.cancel();
+            this.webSocket.abort();
+            stage.close();
+        }
+
+        if (!this.listener.isCloseInitiated() ) {
             this.listener.setCloseInitiated(true);
-            this.webSocket.sendClose(1000, "Fx client wants to quit...").thenRun(closeTimer()).thenRun(stage::close);
+
+            this.webSocket.sendClose(1000, "Fx client wants to quit...")
+                    .thenRun(closeTimer())
+                    .thenRun(stage::close);
         }
     }
 

@@ -47,16 +47,21 @@ public class ChatController {
         actionEvent.consume();
 
         this.clearError();
+        this.usernameInput.setStyle("");
 
         String username = this.usernameInput.getText();
 
         if (username.length() < MIN_USERNAME_LENGTH) {
             this.showError(String.format("Username too short, min: %d chars!", MIN_USERNAME_LENGTH));
+            this.usernameInput.setStyle("-fx-border-color: red");
+
             return;
         }
 
         if (username.length() > MAX_USERNAME_LENGTH) {
             this.showError(String.format("Username too long, limit %d chars!", MAX_USERNAME_LENGTH));
+            this.usernameInput.setStyle("-fx-border-color: red");
+
             return;
         }
 
@@ -134,21 +139,39 @@ public class ChatController {
         this.client.getIsConnectedProperty().addListener(this.connectionStateListener());
     }
 
-    //TODO: implement
     private ChangeListener<String> messageListener() {
         return (observable, oldValue, newValue) -> {
-            System.out.println("Message listener from " + Thread.currentThread().getName());
-            System.out.println("Message: " + newValue);
+            if (newValue.startsWith(ACCEPTED_FLAG)) {
+                String[] data = newValue.split(COMMAND_DELIMITER);
+                String inputValue = this.usernameInput.getText();
+
+                if (data[1].equals(inputValue)) {
+                    this.username = inputValue;
+                    this.messageInput.clear();
+
+                    this.toggleButtons(false);
+                    this.switchPage();
+                }
+
+                return;
+            }
+
+            if (newValue.startsWith(ERROR_FLAG)) {
+                String[] data = newValue.split(COMMAND_DELIMITER);
+
+                this.showError(data[1]);
+                this.usernameInput.setStyle("-fx-border-color: red");
+
+                return;
+            }
+
+            this.textArea.appendText(newValue);
+            this.textArea.appendText(System.lineSeparator());
         };
     }
 
-    //TODO: finish
     private ChangeListener<Boolean> connectionStateListener() {
         return (observable, oldValue, newValue) -> {
-
-            System.out.println("State listener from " + Thread.currentThread().getName());
-            System.out.println("Connected: " + newValue);
-
             if (newValue) {
                 this.toggleButtons(false);
                 return;
@@ -180,7 +203,7 @@ public class ChatController {
             return;
         }
 
-      this.errorMessage.setVisible(false);
+        this.errorMessage.setVisible(false);
     }
 
     private void toggleButtons(boolean disabled) {
@@ -200,6 +223,9 @@ public class ChatController {
             this.setVisibility(this.usernamePage, true);
 
         } else {
+            this.announcement.setText(String.format("Welcome, %s!", this.username));
+            this.announcement.setStyle("-fx-background-color: #515254");
+
             this.setVisibility(this.usernamePage, false);
             this.setVisibility(this.mainPage, true);
         }

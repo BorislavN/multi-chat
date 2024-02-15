@@ -82,7 +82,6 @@ public class Listener implements WebSocket.Listener {
             this.closeInitiated = true;
         }
 
-        //TODO: rework
         Platform.runLater(() -> this.isConnectedProperty.setValue(false));
 
         return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
