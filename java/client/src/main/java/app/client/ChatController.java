@@ -47,26 +47,24 @@ public class ChatController {
         actionEvent.consume();
 
         this.clearError();
-        this.usernameInput.setStyle("");
 
         String username = this.usernameInput.getText();
 
         if (username.length() < MIN_USERNAME_LENGTH) {
             this.showError(String.format("Username too short, min: %d chars!", MIN_USERNAME_LENGTH));
-            this.usernameInput.setStyle("-fx-border-color: red");
 
             return;
         }
 
         if (username.length() > MAX_USERNAME_LENGTH) {
             this.showError(String.format("Username too long, limit %d chars!", MAX_USERNAME_LENGTH));
-            this.usernameInput.setStyle("-fx-border-color: red");
 
             return;
         }
 
         if (username.equals(this.username)) {
             switchPage();
+
             return;
         }
 
@@ -77,20 +75,19 @@ public class ChatController {
     public void onSend(ActionEvent actionEvent) {
         actionEvent.consume();
 
-        this.messageInput.setStyle("");
         this.clearError();
 
         String message = this.messageInput.getText();
 
         if (message.isBlank()) {
-            this.messageInput.setStyle("-fx-border-color: red");
             this.showError("Input cannot be blank!");
+
             return;
         }
 
         if (message.length() > MESSAGE_LIMIT) {
-            this.messageInput.setStyle("-fx-border-color: red");
             this.showError(String.format("Message too long, limit %d B", MESSAGE_LIMIT));
+
             return;
         }
 
@@ -156,11 +153,9 @@ public class ChatController {
                 return;
             }
 
-            if (newValue.startsWith(ERROR_FLAG)) {
+            if (newValue.startsWith(EXCEPTION_FLAG)) {
                 String[] data = newValue.split(COMMAND_DELIMITER);
-
                 this.showError(data[1]);
-                this.usernameInput.setStyle("-fx-border-color: red");
 
                 return;
             }
@@ -186,11 +181,13 @@ public class ChatController {
     private void showError(String text) {
         if (this.mainPage.isVisible()) {
             this.announcement.setStyle("-fx-background-color: #eb4d42");
+            this.messageInput.setStyle("-fx-border-color: red");
             this.announcement.setText(text);
 
             return;
         }
 
+        this.usernameInput.setStyle("-fx-border-color: red");
         this.errorMessage.setVisible(true);
         this.errorMessage.setText(text);
     }
@@ -199,11 +196,13 @@ public class ChatController {
         if (this.mainPage.isVisible()) {
             this.announcement.setText(String.format("Welcome, %s!", this.username));
             this.announcement.setStyle("-fx-background-color: #515254");
+            this.messageInput.setStyle("");
 
             return;
         }
 
         this.errorMessage.setVisible(false);
+        this.usernameInput.setStyle("");
     }
 
     private void toggleButtons(boolean disabled) {

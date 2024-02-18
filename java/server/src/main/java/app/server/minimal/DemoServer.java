@@ -235,11 +235,11 @@ public class DemoServer {
             String responseText = null;
 
             if (name.length() < MIN_USERNAME_LENGTH) {
-                responseText = String.format("%s%sMust be least %d chars!", ERROR_FLAG, COMMAND_DELIMITER, MIN_USERNAME_LENGTH);
+                responseText = String.format("%s%sMust be least %d chars!", EXCEPTION_FLAG, COMMAND_DELIMITER, MIN_USERNAME_LENGTH);
             }
 
             if (responseText == null && !this.isUsernameAvailable(connectionData, name)) {
-                responseText = String.format("%s%sUsername is taken!", ERROR_FLAG, COMMAND_DELIMITER);
+                responseText = String.format("%s%sUsername is taken!", EXCEPTION_FLAG, COMMAND_DELIMITER);
             }
 
             if (responseText == null) {

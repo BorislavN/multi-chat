@@ -87,13 +87,6 @@ function onJoinClick() {
   socket.send(`${COMMAND_DELIMITER}${value}`);
 };
 
-function showMainPage() {
-  loginError.style.opacity = "0";
-
-  this.setGreeting();
-  this.toggleVisibility();
-}
-
 function onSendClick() {
   let value = this.escapeString(messageInput.value);
   let status = this.validateText(value);
@@ -134,6 +127,13 @@ function onEnter(event) {
   }
 };
 
+function showMainPage() {
+  loginError.style.opacity = "0";
+
+  this.setGreeting();
+  this.toggleVisibility();
+}
+
 function setGreeting(errorMessage) {
   if (errorMessage) {
     userPane.classList.add("error");
@@ -151,14 +151,6 @@ function showLoginError(message) {
   loginError.style.opacity = "1";
 };
 
-function validateText(text) {
-  if (text.trim().length === 0) {
-    return "Can not be blank!";
-  }
-
-  return "valid";
-};
-
 function toggleVisibility() {
   let temp = loginDiv.style.display;
 
@@ -170,6 +162,14 @@ function disableAllButtons() {
   joinBtn.disabled = true;
   backBtn.disabled = true;
   sendBtn.disabled = true;
+};
+
+function validateText(text) {
+  if (text.trim().length === 0) {
+    return "Can not be blank!";
+  }
+
+  return "valid";
 };
 
 function escapeString(value) {
