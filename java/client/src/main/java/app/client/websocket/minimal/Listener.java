@@ -21,7 +21,7 @@ public class Listener implements WebSocket.Listener {
 
     public Listener(Timer timer) {
         this.latestMessageProperty = new SimpleStringProperty(null);
-        this.isConnectedProperty = new SimpleBooleanProperty(false);
+        this.isConnectedProperty = new SimpleBooleanProperty(true);
         this.stringBuilder = new StringBuilder();
         this.messageStage = new CompletableFuture<>();
         this.closeInitiated = false;
@@ -34,13 +34,6 @@ public class Listener implements WebSocket.Listener {
 
     public void setCloseInitiated(boolean closeInitiated) {
         this.closeInitiated = closeInitiated;
-    }
-
-    @Override
-    public void onOpen(WebSocket webSocket) {
-        Platform.runLater(() -> this.isConnectedProperty.setValue(true));
-
-        WebSocket.Listener.super.onOpen(webSocket);
     }
 
     @Override
@@ -67,7 +60,7 @@ public class Listener implements WebSocket.Listener {
 
     @Override
     public void onError(WebSocket webSocket, Throwable error) {
-        Platform.runLater(() -> this.isConnectedProperty.setValue(false));
+        this.setIsConnectedProperty(false);
 
         WebSocket.Listener.super.onError(webSocket, error);
     }
@@ -78,11 +71,11 @@ public class Listener implements WebSocket.Listener {
             this.timer.cancel();
             webSocket.abort();
 
-        }else {
+        } else {
             this.closeInitiated = true;
         }
 
-        Platform.runLater(() -> this.isConnectedProperty.setValue(false));
+        this.setIsConnectedProperty(false);
 
         return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
 
@@ -94,5 +87,9 @@ public class Listener implements WebSocket.Listener {
 
     public BooleanProperty getIsConnectedProperty() {
         return this.isConnectedProperty;
+    }
+
+    public void setIsConnectedProperty(boolean value) {
+        Platform.runLater(() -> this.isConnectedProperty.setValue(value));
     }
 }

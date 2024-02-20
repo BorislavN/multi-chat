@@ -35,6 +35,7 @@ socket.addEventListener("open", (event) => {
 // 1: ping/pong functionality
 // 2: the error handling
 // 3: frame building
+// 4: spamming handling?
 public class DemoServer {
     private ServerSocketChannel server;
     private Selector selector;

@@ -2,7 +2,7 @@ var currentName;
 
 const COMMAND_DELIMITER = "@";
 const ACCEPTED_FLAG = "accepted";
-const ERROR_FLAG = "error";
+const EXCEPTION_FLAG = "exception";
 
 const loginDiv = document.getElementById("login");
 const loginError = document.getElementById("loginError");
@@ -28,7 +28,7 @@ socket.addEventListener("message", (event) => {
   let message = event.data;
 
   let isAccepted = message.startsWith(ACCEPTED_FLAG.concat(COMMAND_DELIMITER));
-  let isError = message.startsWith(ERROR_FLAG.concat(COMMAND_DELIMITER));
+  let isError = message.startsWith(EXCEPTION_FLAG.concat(COMMAND_DELIMITER));
 
   if (isAccepted || isError) {
     let parts = message.split(COMMAND_DELIMITER);
@@ -62,20 +62,20 @@ socket.addEventListener("error", (event) => {
   this.disableAllButtons();
 
   this.showLoginError(message);
-  this.setGreeting(message);
+  this.setAnnouncement(message);
 });
 
 socket.addEventListener("close", (event) => {
   this.disableAllButtons();
 
   this.showLoginError("Connection closed!");
-  this.setGreeting("Connection closed!")
+  this.setAnnouncement("Connection closed!")
 });
 
 document.addEventListener("keydown", this.onEnter);
 
 function onJoinClick() {
-  let value = this.escapeString(usernameInput.value);
+  let value = usernameInput.value;
   let status = this.validateText(value);
 
   if ("valid" !== status) {
@@ -88,11 +88,11 @@ function onJoinClick() {
 };
 
 function onSendClick() {
-  let value = this.escapeString(messageInput.value);
+  let value = messageInput.value;
   let status = this.validateText(value);
 
   if ("valid" !== status) {
-    this.setGreeting(status);
+    this.setAnnouncement(status);
 
     return;
   }
@@ -100,7 +100,7 @@ function onSendClick() {
   socket.send(`${currentName}: ${value}`);
 
   messageInput.value = "";
-  this.setGreeting();
+  this.setAnnouncement();
 };
 
 function onChangeNameClick() {
@@ -130,11 +130,11 @@ function onEnter(event) {
 function showMainPage() {
   loginError.style.opacity = "0";
 
-  this.setGreeting();
+  this.setAnnouncement();
   this.toggleVisibility();
 }
 
-function setGreeting(errorMessage) {
+function setAnnouncement(errorMessage) {
   if (errorMessage) {
     userPane.classList.add("error");
     userPane.textContent = errorMessage;
@@ -170,13 +170,4 @@ function validateText(text) {
   }
 
   return "valid";
-};
-
-function escapeString(value) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 };

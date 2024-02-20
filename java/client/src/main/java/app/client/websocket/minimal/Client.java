@@ -10,6 +10,7 @@ import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.CompletionException;
 
 public class Client implements ChatClient {
     private final WebSocket webSocket;
@@ -20,11 +21,21 @@ public class Client implements ChatClient {
         this.timer = new Timer();
         this.listener = new Listener(this.timer);
 
-        this.webSocket = HttpClient
-                .newHttpClient()
-                .newWebSocketBuilder()
-                .buildAsync(URI.create(String.format("ws://localhost:%d", port)), this.listener)
-                .join();
+        WebSocket temp = null;
+
+        try {
+            temp = HttpClient
+                    .newHttpClient()
+                    .newWebSocketBuilder()
+                    .buildAsync(URI.create(String.format("ws://localhost:%d", port)), this.listener)
+                    .join();
+
+        } catch (CompletionException e) {
+            this.timer.cancel();
+            this.listener.setIsConnectedProperty(false);
+        }
+
+        this.webSocket = temp;
     }
 
     @Override
@@ -34,13 +45,18 @@ public class Client implements ChatClient {
 
     @Override
     public void closeClient(Stage stage) {
+        if (this.webSocket == null) {
+            stage.close();
+            return;
+        }
+
         if (!this.listener.getIsConnectedProperty().getValue()) {
             this.timer.cancel();
             this.webSocket.abort();
             stage.close();
         }
 
-        if (!this.listener.isCloseInitiated() ) {
+        if (!this.listener.isCloseInitiated()) {
             this.listener.setCloseInitiated(true);
 
             this.webSocket.sendClose(1000, "Fx client wants to quit...")

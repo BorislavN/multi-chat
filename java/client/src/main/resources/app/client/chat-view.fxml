@@ -32,7 +32,7 @@
         </Button>
     </VBox>
 
-    <VBox fx:id="mainPage" alignment="TOP_CENTER" managed="false" minHeight="700"  visible="false">
+    <VBox fx:id="mainPage" alignment="TOP_CENTER" managed="false" prefHeight="700" prefWidth="600"  visible="false">
         <Label fx:id="announcement" alignment="CENTER" contentDisplay="CENTER" graphicTextGap="8.0" layoutX="144.0"
                layoutY="136.0" prefWidth="${textArea.width}" textAlignment="CENTER" textFill="#fffdfd">
             <padding>

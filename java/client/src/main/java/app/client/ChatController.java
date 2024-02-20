@@ -52,12 +52,14 @@ public class ChatController {
 
         if (username.length() < MIN_USERNAME_LENGTH) {
             this.showError(String.format("Username too short, min: %d chars!", MIN_USERNAME_LENGTH));
+            this.usernameInput.setStyle("-fx-border-color: red");
 
             return;
         }
 
         if (username.length() > MAX_USERNAME_LENGTH) {
             this.showError(String.format("Username too long, limit %d chars!", MAX_USERNAME_LENGTH));
+            this.usernameInput.setStyle("-fx-border-color: red");
 
             return;
         }
@@ -81,12 +83,14 @@ public class ChatController {
 
         if (message.isBlank()) {
             this.showError("Input cannot be blank!");
+            this.messageInput.setStyle("-fx-border-color: red");
 
             return;
         }
 
         if (message.length() > MESSAGE_LIMIT) {
             this.showError(String.format("Message too long, limit %d B", MESSAGE_LIMIT));
+            this.messageInput.setStyle("-fx-border-color: red");
 
             return;
         }
@@ -125,18 +129,18 @@ public class ChatController {
         event.consume();
 
         this.client.closeClient(stage);
+        this.client.getIsConnectedProperty().unbind();
+        this.client.getMessageProperty().unbind();
     }
 
     public void configureClient() {
-        this.toggleButtons(true);
-
         this.client = new Client(80);
 
-        this.client.getMessageProperty().addListener(this.messageListener());
-        this.client.getIsConnectedProperty().addListener(this.connectionStateListener());
+        this.client.getMessageProperty().addListener(this.createMessageListener());
+        this.client.getIsConnectedProperty().addListener(this.createConnectionStateListener());
     }
 
-    private ChangeListener<String> messageListener() {
+    private ChangeListener<String> createMessageListener() {
         return (observable, oldValue, newValue) -> {
             if (newValue.startsWith(ACCEPTED_FLAG)) {
                 String[] data = newValue.split(COMMAND_DELIMITER);
@@ -144,7 +148,6 @@ public class ChatController {
 
                 if (data[1].equals(inputValue)) {
                     this.username = inputValue;
-                    this.messageInput.clear();
 
                     this.toggleButtons(false);
                     this.switchPage();
@@ -156,6 +159,7 @@ public class ChatController {
             if (newValue.startsWith(EXCEPTION_FLAG)) {
                 String[] data = newValue.split(COMMAND_DELIMITER);
                 this.showError(data[1]);
+                this.usernameInput.setStyle("-fx-border-color: red");
 
                 return;
             }
@@ -165,7 +169,7 @@ public class ChatController {
         };
     }
 
-    private ChangeListener<Boolean> connectionStateListener() {
+    private ChangeListener<Boolean> createConnectionStateListener() {
         return (observable, oldValue, newValue) -> {
             if (newValue) {
                 this.toggleButtons(false);
@@ -181,13 +185,11 @@ public class ChatController {
     private void showError(String text) {
         if (this.mainPage.isVisible()) {
             this.announcement.setStyle("-fx-background-color: #eb4d42");
-            this.messageInput.setStyle("-fx-border-color: red");
             this.announcement.setText(text);
 
             return;
         }
 
-        this.usernameInput.setStyle("-fx-border-color: red");
         this.errorMessage.setVisible(true);
         this.errorMessage.setText(text);
     }
@@ -221,15 +223,18 @@ public class ChatController {
             this.setVisibility(this.mainPage, false);
             this.setVisibility(this.usernamePage, true);
 
-        } else {
-            this.announcement.setText(String.format("Welcome, %s!", this.username));
-            this.announcement.setStyle("-fx-background-color: #515254");
+            this.usernamePage.getScene().getWindow().sizeToScene();
 
-            this.setVisibility(this.usernamePage, false);
-            this.setVisibility(this.mainPage, true);
+            return;
         }
 
-        this.usernamePage.getScene().getWindow().sizeToScene();
+        this.announcement.setText(String.format("Welcome, %s!", this.username));
+        this.announcement.setStyle("-fx-background-color: #515254");
+
+        this.setVisibility(this.usernamePage, false);
+        this.setVisibility(this.mainPage, true);
+
+        this.mainPage.getScene().getWindow().sizeToScene();
     }
 
     private void setVisibility(Node element, boolean value) {
