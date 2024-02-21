@@ -1,5 +1,14 @@
 package app.server.minimal;
 
+import app.server.minimal.entity.ConnectionData;
+import app.server.minimal.entity.FrameData;
+import app.server.minimal.entity.UpgradeStatus;
+import app.server.minimal.exception.ConnectionException;
+import app.server.minimal.exception.MalformedFrameException;
+import app.server.minimal.exception.MessageLengthException;
+import app.server.minimal.helper.ChannelHelper;
+import app.server.minimal.helper.FrameBuilder;
+import app.server.minimal.helper.ServerUtil;
 import app.util.Logger;
 
 import java.io.IOException;
@@ -33,9 +42,8 @@ socket.addEventListener("open", (event) => {
 
 //TODO: needs refactoring
 // 1: ping/pong functionality
-// 2: the error handling
-// 3: frame building
-// 4: spamming handling?
+// 2: frame building
+// 3: spamming handling?
 public class DemoServer {
     private ServerSocketChannel server;
     private Selector selector;
@@ -66,11 +74,7 @@ public class DemoServer {
     public void start() {
         if (this.isRunning()) {
             while (!this.activeConnections.isEmpty() || !this.receivedConnection) {
-                try {
-                    this.selector.select();
-                } catch (IOException e) {
-                    Logger.logAsError("Select failed!");
-                }
+                this.selectorSelect();
 
                 Iterator<SelectionKey> iterator = this.selector.selectedKeys().iterator();
 
@@ -84,17 +88,14 @@ public class DemoServer {
 
                         this.handleQueuedMessages(key);
 
-                    } catch (MalformedFrameException | IllegalArgumentException | IllegalStateException |
-                             IOException e) {
+                    } catch (MalformedFrameException e) {
+                        this.terminateConnection(key, 1002, e.getMessage());
+                    } catch (MessageLengthException e) {
+                        this.terminateConnection(key, 1009, e.getMessage());
+                    } catch (IllegalStateException e) {
+                        this.terminateConnection(key, 1011, e.getMessage());
+                    } catch (IOException | ConnectionException e) {
                         Logger.logError("Exception encountered", e);
-
-                        try {
-                            ByteBuffer buffer = FrameBuilder.buildCloseFrame(1002, e.getMessage());
-                            ChannelHelper.writeBytes((SocketChannel) key.channel(), buffer);
-                        } catch (IOException edas) {
-                            Logger.logAsError("Failed to send close frame!");
-                        }
-
                         this.disconnectUser(key);
                     }
 
@@ -106,24 +107,36 @@ public class DemoServer {
         }
     }
 
-    private void handleIncomingConnections(SelectionKey key) throws IOException {
+    private void selectorSelect() {
+        try {
+            this.selector.select();
+        } catch (IOException exception) {
+            Logger.logAsError("Selection failed!");
+        }
+    }
+
+    private void handleIncomingConnections(SelectionKey key) {
         if (key.isValid() && key.isAcceptable()) {
-            SocketChannel connection = this.server.accept();
+            try {
+                SocketChannel connection = this.server.accept();
 
-            if (connection != null) {
-                long nextId = this.utilities.getNextId();
-                connection.configureBlocking(false);
+                if (connection != null) {
+                    long nextId = this.utilities.getNextId();
+                    connection.configureBlocking(false);
 
-                SelectionKey channelKey = connection.register(this.selector, SelectionKey.OP_READ, nextId);
-                ConnectionData data = new ConnectionData(channelKey);
+                    SelectionKey channelKey = connection.register(this.selector, SelectionKey.OP_READ, nextId);
+                    ConnectionData data = new ConnectionData(channelKey);
 
-                this.activeConnections.put(nextId, data);
-                this.receivedConnection = true;
+                    this.activeConnections.put(nextId, data);
+                    this.receivedConnection = true;
+                }
+            } catch (IOException e) {
+                Logger.logAsError("Exception encountered while handling incoming connection!");
             }
         }
     }
 
-    private void handleIncomingMessages(SelectionKey key) throws IOException {
+    private void handleIncomingMessages(SelectionKey key) {
         if (key.isValid() && key.isReadable()) {
             SocketChannel connection = this.getChannel(key);
             ConnectionData connectionData = this.activeConnections.get(this.getId(key));
@@ -147,14 +160,21 @@ public class DemoServer {
             }
 
             if (!connectionData.wasUpgraded()) {
-                boolean result = this.utilities.upgradeConnection(connection);
+                UpgradeStatus result = this.utilities.upgradeConnection(connection);
 
-                if (result) {
+                if (result.threwException()) {
+                    this.disconnectUser(key);
+
+                    return;
+                }
+
+                if (result.wasUpgraded()) {
                     connectionData.setWasUpgraded(true);
                 }
             }
         }
     }
+
 
     private void handleQueuedMessages(SelectionKey key) throws IOException {
         if (key.isValid() && key.isWritable()) {
@@ -214,6 +234,19 @@ public class DemoServer {
         this.enqueueToAllUsers(frame);
     }
 
+    private void terminateConnection(SelectionKey key, int code, String reason) {
+        SocketChannel connection = (SocketChannel) key.channel();
+        ByteBuffer closeFrame = FrameBuilder.buildCloseFrame(code, reason);
+
+        try {
+            ChannelHelper.writeBytes(connection, closeFrame);
+        } catch (IOException e) {
+            Logger.logAsError("Exception occurred while sending Close-frame!");
+        }
+
+        this.disconnectUser(key);
+    }
+
     private boolean handleFragment(ConnectionData connectionData, ByteBuffer frame) {
         if (this.isFragment(connectionData.getLastFrame())) {
             connectionData.addFragment(frame);
@@ -228,12 +261,14 @@ public class DemoServer {
         return false;
     }
 
+    //TODO: debug, this stopped working properly
     private boolean handleUsernameSelection(ConnectionData connectionData) {
         FrameData lastFrame = connectionData.getLastFrame();
 
         if (lastFrame.getMessage().startsWith(COMMAND_DELIMITER)) {
             String name = lastFrame.getMessage().substring(COMMAND_DELIMITER.length());
             String responseText = null;
+            String announcement = null;
 
             if (name.length() < MIN_USERNAME_LENGTH) {
                 responseText = String.format("%s%sMust be least %d chars!", EXCEPTION_FLAG, COMMAND_DELIMITER, MIN_USERNAME_LENGTH);
@@ -245,23 +280,27 @@ public class DemoServer {
 
             if (responseText == null) {
                 responseText = String.format("%s%s%s", ACCEPTED_FLAG, COMMAND_DELIMITER, name);
+
                 String oldName = connectionData.getUsername();
 
                 if (!name.equals(oldName)) {
-                    String announcment = String.format("\"%s\" joined the chat!", name);
+                    announcement = String.format("\"%s\" joined the chat!", name);
 
                     if (oldName != null) {
-                        announcment = String.format("\"%s\" changed their name to \"%s\".", oldName, name);
+                        announcement = String.format("\"%s\" changed their name to \"%s\".", oldName, name);
                     }
 
                     connectionData.setUsername(name);
-
-                    this.enqueueToAllUsers(FrameBuilder.buildFrame(true, 1, announcment.getBytes(UTF_8)));
                 }
             }
 
             ByteBuffer response = FrameBuilder.buildFrame(true, 1, responseText.getBytes(UTF_8));
-            connectionData.enqueuePriorityMessage(response);
+            connectionData.enqueueMessage(response);
+
+            if (announcement != null) {
+                ByteBuffer announcementFrame = FrameBuilder.buildFrame(true, 1, responseText.getBytes(UTF_8));
+                connectionData.enqueueMessage(announcementFrame);
+            }
 
             return true;
         }

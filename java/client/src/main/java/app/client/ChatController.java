@@ -1,5 +1,6 @@
 package app.client;
 
+import app.client.websocket.ChatClient;
 import app.client.websocket.minimal.Client;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
@@ -34,7 +35,7 @@ public class ChatController {
     private TextField messageInput;
     @FXML
     private Button sendBtn;
-    private Client client;
+    private ChatClient client;
     private String username;
 
     public ChatController() {

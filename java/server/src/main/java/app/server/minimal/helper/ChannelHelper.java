@@ -1,4 +1,4 @@
-package app.server.minimal;
+package app.server.minimal.helper;
 
 
 import app.util.Constants;
@@ -22,15 +22,7 @@ public class ChannelHelper {
             buffer.flip();
         }
 
-        if (bytesRead == -1) {
-            throw new IllegalStateException("Connection closed!");
-        }
-
-        if (message.isEmpty()) {
-            throw new IllegalStateException(
-                    String.format("No bytes could be read from connection - %s", connection.getRemoteAddress())
-            );
-        }
+        checkForClose(bytesRead);
 
         return message.toString();
     }
@@ -38,9 +30,7 @@ public class ChannelHelper {
     public static boolean readBytes(SocketChannel connection, ByteBuffer buffer) throws IOException {
         int bytesRead = connection.read(buffer);
 
-        if (bytesRead == -1) {
-            throw new IllegalStateException("Connection closed!");
-        }
+        checkForClose(bytesRead);
 
         return bytesRead == buffer.capacity();
     }
@@ -51,17 +41,17 @@ public class ChannelHelper {
                 return;
             }
 
-            int bytesWritten = connection.write(buffer);
-
-            if (bytesWritten == -1) {
-                throw new IllegalStateException("Connection closed!");
-            }
+            checkForClose(connection.write(buffer));
         }
 
         if (buffer.hasRemaining()) {
-            throw new IllegalStateException(
-                    String.format("Write attempt limit reached - %s", connection.getRemoteAddress())
-            );
+            throw new IllegalStateException("Write attempt limit reached!");
+        }
+    }
+
+    private static void checkForClose(int bytesProcessed) {
+        if (bytesProcessed == -1) {
+            throw new IllegalStateException("Connection closed!");
         }
     }
 }

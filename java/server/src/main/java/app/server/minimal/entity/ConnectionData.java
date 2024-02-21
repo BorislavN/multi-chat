@@ -1,10 +1,13 @@
-package app.server.minimal;
+package app.server.minimal.entity;
+
+import app.server.minimal.exception.MessageLengthException;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.*;
 
+import static app.util.Constants.MESSAGE_LIMIT;
 import static java.nio.channels.SelectionKey.OP_WRITE;
 
 public class ConnectionData {
@@ -13,6 +16,7 @@ public class ConnectionData {
     private boolean receivedPing;
     private boolean receivedClose;
     private boolean sentClose;
+    private int totalFragmentLength;
     private FrameData lastFrame;
     private final List<ByteBuffer> fragments;
     private final SelectionKey selectionKey;
@@ -25,6 +29,7 @@ public class ConnectionData {
         this.receivedPing = false;
         this.receivedClose = false;
         this.sentClose = false;
+        this.totalFragmentLength=0;
         this.lastFrame=new FrameData();
         this.waitingFrames = new ArrayDeque<>();
         this.fragments = new ArrayList<>();
@@ -111,7 +116,12 @@ public class ConnectionData {
     }
 
     public void addFragment(ByteBuffer fragment) {
-        //TODO: check if fragment will exceed fragmentedMessageLimit
+        this.totalFragmentLength+=fragment.capacity();
+
+        if (this.totalFragmentLength> MESSAGE_LIMIT){
+            throw new MessageLengthException("Message limit exceed!");
+        }
+
         this.fragments.add(fragment);
     }
 
@@ -121,6 +131,7 @@ public class ConnectionData {
     }
 
     public void clearFragments() {
+        this.totalFragmentLength=0;
         this.fragments.clear();
     }
 

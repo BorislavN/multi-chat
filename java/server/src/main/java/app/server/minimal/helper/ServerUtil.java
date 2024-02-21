@@ -1,4 +1,9 @@
-package app.server.minimal;
+package app.server.minimal.helper;
+
+import app.server.minimal.entity.ConnectionData;
+import app.server.minimal.entity.FrameData;
+import app.server.minimal.entity.UpgradeStatus;
+import app.server.minimal.exception.ConnectionException;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -17,7 +22,7 @@ public class ServerUtil {
         return this.connectionId++;
     }
 
-    public boolean upgradeConnection(SocketChannel connection) {
+    public UpgradeStatus upgradeConnection(SocketChannel connection) {
         try {
             String request = ChannelHelper.readAllBytes(connection);
             request = request.trim();
@@ -26,13 +31,13 @@ public class ServerUtil {
             ChannelHelper.writeBytes(connection, ByteBuffer.wrap(response.getBytes(UTF_8)));
 
             if (response.startsWith("HTTP/1.1 400")) {
-                return false;
+                return new UpgradeStatus(false, true);
             }
 
-            return connection.isConnected();
+            return new UpgradeStatus(connection.isConnected(), false);
 
         } catch (IOException e) {
-            throw new IllegalStateException(
+            throw new ConnectionException(
                     String.format("Upgrade attempt failed - %s%n!", e.getMessage())
             );
         }
@@ -89,9 +94,7 @@ public class ServerUtil {
             }
 
         } catch (IOException e) {
-            throw new IllegalStateException(
-                    String.format("An IOException occurred while reading the frame - %s!%n", e.getMessage())
-            );
+            throw new ConnectionException("Frame read operation failed!");
         }
     }
 

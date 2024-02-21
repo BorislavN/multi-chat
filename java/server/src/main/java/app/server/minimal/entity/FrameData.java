@@ -1,10 +1,13 @@
-package app.server.minimal;
+package app.server.minimal.entity;
 
 
+import app.server.minimal.exception.MalformedFrameException;
+import app.server.minimal.exception.MessageLengthException;
 import app.util.Constants;
 
 import java.nio.ByteBuffer;
 
+import static app.util.Constants.MESSAGE_LIMIT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class FrameData {
@@ -189,9 +192,9 @@ public class FrameData {
                     + (Byte.toUnsignedLong(this.extendedLength.get(7)));
 
 
-            //TODO: rework
-            if (tempValue > Constants.MESSAGE_LIMIT * 20) {
-                throw new IllegalStateException(String.format("Message too long limit - %d!", Constants.MESSAGE_LIMIT));
+
+            if (tempValue > MESSAGE_LIMIT) {
+                throw new MessageLengthException(String.format("Message too long limit - %d!", MESSAGE_LIMIT));
             }
 
             return (int) tempValue;

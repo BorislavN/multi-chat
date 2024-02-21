@@ -1,4 +1,6 @@
-package app.server.minimal;
+package app.server.minimal.helper;
+
+import app.server.minimal.entity.FrameData;
 
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
