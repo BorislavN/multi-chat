@@ -12,6 +12,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import javafx.stage.WindowEvent;
 
 import static app.util.Constants.*;
@@ -220,22 +221,21 @@ public class ChatController {
     }
 
     private void switchPage() {
+        Window window = this.usernamePage.getScene().getWindow();
+
+        boolean uVisibility=false;
+        boolean mVisibility=true;
+
         if (this.mainPage.isVisible()) {
-            this.setVisibility(this.mainPage, false);
-            this.setVisibility(this.usernamePage, true);
-
-            this.usernamePage.getScene().getWindow().sizeToScene();
-
-            return;
+            mVisibility=false;
+            uVisibility=true;
         }
 
-        this.announcement.setText(String.format("Welcome, %s!", this.username));
-        this.announcement.setStyle("-fx-background-color: #515254");
+        this.setVisibility(this.usernamePage, uVisibility);
+        this.setVisibility(this.mainPage, mVisibility);
 
-        this.setVisibility(this.usernamePage, false);
-        this.setVisibility(this.mainPage, true);
-
-        this.mainPage.getScene().getWindow().sizeToScene();
+        this.clearError();
+        window.sizeToScene();
     }
 
     private void setVisibility(Node element, boolean value) {

@@ -44,14 +44,14 @@ socket.addEventListener("open", (event) => {
 // 1: ping/pong functionality
 // 2: frame building
 // 3: spamming handling?
-public class DemoServer {
+public class Server {
     private ServerSocketChannel server;
     private Selector selector;
     private final ServerUtil utilities;
     private final Map<Long, ConnectionData> activeConnections;
     private boolean receivedConnection;
 
-    public DemoServer(int port) {
+    public Server(int port) {
         this.activeConnections = new HashMap<>();
         this.receivedConnection = false;
         this.utilities = new ServerUtil();
@@ -298,8 +298,8 @@ public class DemoServer {
             connectionData.enqueueMessage(response);
 
             if (announcement != null) {
-                ByteBuffer announcementFrame = FrameBuilder.buildFrame(true, 1, responseText.getBytes(UTF_8));
-                connectionData.enqueueMessage(announcementFrame);
+                ByteBuffer announcementFrame = FrameBuilder.buildFrame(true, 1, announcement.getBytes(UTF_8));
+                this.enqueueToAllUsers(announcementFrame);
             }
 
             return true;
@@ -396,7 +396,7 @@ public class DemoServer {
     }
 
     public static void main(String[] args) {
-        DemoServer server = new DemoServer(80);
+        Server server = new Server(80);
         server.start();
     }
 }
