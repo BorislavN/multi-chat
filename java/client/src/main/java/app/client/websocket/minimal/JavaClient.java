@@ -12,12 +12,12 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CompletionException;
 
-public class Client implements ChatClient {
+public class JavaClient implements ChatClient {
     private final WebSocket webSocket;
     private final Listener listener;
     private final Timer timer;
 
-    public Client(int port) {
+    public JavaClient(int port) {
         this.timer = new Timer();
         this.listener = new Listener(this.timer);
 

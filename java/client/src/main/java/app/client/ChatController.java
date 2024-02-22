@@ -1,7 +1,8 @@
 package app.client;
 
 import app.client.websocket.ChatClient;
-import app.client.websocket.minimal.Client;
+import app.client.websocket.minimal.JavaClient;
+import app.client.websocket.proper.JakartaClient;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -136,7 +137,8 @@ public class ChatController {
     }
 
     public void configureClient() {
-        this.client = new Client(80);
+        this.client = new JakartaClient(80);
+//        this.client = new JavaClient(80);
 
         this.client.getMessageProperty().addListener(this.createMessageListener());
         this.client.getIsConnectedProperty().addListener(this.createConnectionStateListener());
@@ -223,12 +225,12 @@ public class ChatController {
     private void switchPage() {
         Window window = this.usernamePage.getScene().getWindow();
 
-        boolean uVisibility=false;
-        boolean mVisibility=true;
+        boolean uVisibility = false;
+        boolean mVisibility = true;
 
         if (this.mainPage.isVisible()) {
-            mVisibility=false;
-            uVisibility=true;
+            mVisibility = false;
+            uVisibility = true;
         }
 
         this.setVisibility(this.usernamePage, uVisibility);

@@ -1,5 +1,6 @@
 package app.client.websocket.minimal;
 
+import app.util.Logger;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -60,6 +61,8 @@ public class Listener implements WebSocket.Listener {
 
     @Override
     public void onError(WebSocket webSocket, Throwable error) {
+        Logger.logError("Listener encountered exception", error);
+
         this.setIsConnectedProperty(false);
 
         WebSocket.Listener.super.onError(webSocket, error);
@@ -78,7 +81,6 @@ public class Listener implements WebSocket.Listener {
         this.setIsConnectedProperty(false);
 
         return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
-
     }
 
     public StringProperty getLatestMessageProperty() {
