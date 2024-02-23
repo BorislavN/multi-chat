@@ -126,6 +126,7 @@ public class ChatController {
         actionEvent.consume();
 
         this.switchPage();
+        this.usernameInput.end();
     }
 
     public void onClose(WindowEvent event, Stage stage) {
@@ -136,9 +137,20 @@ public class ChatController {
         this.client.getMessageProperty().unbind();
     }
 
-    public void configureClient() {
-        this.client = new JakartaClient(80);
-//        this.client = new JavaClient(80);
+    public void configureClient(int type) {
+        if (type == 1) {
+            this.client = new JavaClient(80);
+        }
+
+        if (type == 2) {
+            this.client = new JakartaClient(80);
+        }
+
+        if (this.client == null) {
+            this.toggleButtons(true);
+
+            return;
+        }
 
         this.client.getMessageProperty().addListener(this.createMessageListener());
         this.client.getIsConnectedProperty().addListener(this.createConnectionStateListener());

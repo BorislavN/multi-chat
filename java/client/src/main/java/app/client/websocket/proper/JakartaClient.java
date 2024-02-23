@@ -39,7 +39,7 @@ public class JakartaClient implements ChatClient {
 
     @Override
     public void closeClient(Stage stage) {
-        if (!this.listener.isCloseInitiated()) {
+        if (this.session!=null&&!this.listener.isCloseInitiated()) {
             this.listener.setCloseInitiated(true);
 
             try {

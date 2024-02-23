@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 
 import static app.util.Constants.*;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 /*JS code required:
 const socket = new WebSocket("ws://localhost:80");
@@ -41,8 +40,9 @@ socket.addEventListener("open", (event) => {
 */
 
 //TODO: needs refactoring
+// 0: make full use of sent/received close boolean flags
 // 1: ping/pong functionality
-// 2: frame building
+// 2: move log templates to static methods
 // 3: spamming handling?
 public class Server {
     private ServerSocketChannel server;
@@ -207,7 +207,7 @@ public class Server {
         }
 
         connectionData.setReceivedClose(true);
-        connectionData.enqueuePriorityMessage(FrameBuilder.buildFrame(connectionData.getLastFrame()));
+        connectionData.enqueuePriorityMessage(FrameBuilder.copyFrame(connectionData.getLastFrame()));
     }
 
     private void handlePingRequest(ConnectionData connectionData) {
@@ -221,7 +221,7 @@ public class Server {
     }
 
     private void handleMessage(ConnectionData connectionData) {
-        ByteBuffer frame = FrameBuilder.buildFrame(connectionData.getLastFrame());
+        ByteBuffer frame = FrameBuilder.copyFrame(connectionData.getLastFrame());
 
         if (this.handleFragment(connectionData, frame)) {
             return;
@@ -294,11 +294,11 @@ public class Server {
                 }
             }
 
-            ByteBuffer response = FrameBuilder.buildFrame(true, 1, responseText.getBytes(UTF_8));
+            ByteBuffer response = FrameBuilder.buildTextFrame(responseText);
             connectionData.enqueueMessage(response);
 
             if (announcement != null) {
-                ByteBuffer announcementFrame = FrameBuilder.buildFrame(true, 1, announcement.getBytes(UTF_8));
+                ByteBuffer announcementFrame = FrameBuilder.buildTextFrame(announcement);
                 this.enqueueToAllUsers(announcementFrame);
             }
 
@@ -347,10 +347,8 @@ public class Server {
             ConnectionData removed = this.activeConnections.remove(connectionId);
 
             if (removed.getUsername() != null) {
-                ByteBuffer announcement = FrameBuilder.buildFrame(
-                        true,
-                        1,
-                        String.format("\"%s\" left the chat...", removed.getUsername()).getBytes(UTF_8)
+                ByteBuffer announcement = FrameBuilder.buildTextFrame(
+                        String.format("\"%s\" left the chat...", removed.getUsername())
                 );
 
                 this.enqueueToAllUsers(announcement);

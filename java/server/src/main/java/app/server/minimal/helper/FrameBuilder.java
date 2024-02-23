@@ -50,6 +50,9 @@ public class FrameBuilder {
         return createErrorResponse(error);
     }
 
+    public static ByteBuffer buildTextFrame(String message) {
+        return buildFrame(true, 1, message.getBytes(UTF_8));
+    }
 
     public static ByteBuffer buildCloseFrame(int code, String reason) {
         byte firstCodeByte = (byte) ((code >> 8) & 255);
@@ -68,10 +71,11 @@ public class FrameBuilder {
 
         frameData.getMetadata().put(0, firstByte);
 
-        return buildFrame(frameData);
+        return copyFrame(frameData);
     }
 
-    public static ByteBuffer buildFrame(FrameData frameData) {
+    //TODO: seek a better way to copy frame
+    public static ByteBuffer copyFrame(FrameData frameData) {
         ByteBuffer newFrame;
         byte[] payload = frameData.getPayload().array();
 
@@ -99,7 +103,7 @@ public class FrameBuilder {
         return newFrame;
     }
 
-    public static ByteBuffer buildFrame(boolean isFinished, int opcode, byte[] payload) {
+    private static ByteBuffer buildFrame(boolean isFinished, int opcode, byte[] payload) {
         ByteBuffer frame;
         byte firstByte = (byte) opcode;
 

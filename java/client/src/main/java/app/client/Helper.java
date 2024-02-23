@@ -8,13 +8,12 @@ import javafx.stage.Stage;
 import java.io.IOException;
 import java.net.URL;
 
-public class ChatApplication extends Application {
-    @Override
-    public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(ChatApplication.class.getResource("chat-view.fxml"));
+public class Helper {
+    public static void initializeStage(Stage stage, int type) throws IOException {
+        FXMLLoader fxmlLoader = new FXMLLoader(JavaApplication.class.getResource("chat-view.fxml"));
         Scene scene = new Scene(fxmlLoader.load());
 
-        URL cssUrl = getClass().getResource("style.css");
+        URL cssUrl = JavaApplication.class.getResource("style.css");
 
         if (cssUrl != null) {
             scene.getStylesheets().add(cssUrl.toExternalForm());
@@ -22,14 +21,20 @@ public class ChatApplication extends Application {
 
         ChatController controller = fxmlLoader.getController();
         stage.setOnCloseRequest((event -> controller.onClose(event, stage)));
-        controller.configureClient();
+        controller.configureClient(type);
 
-        stage.setTitle("Chat Client");
+        String title="Chat Client";
+
+        if (1==type){
+            title="Java Client";
+        }
+
+        if (2==type){
+            title="Jakarta Client";
+        }
+
+        stage.setTitle(title);
         stage.setScene(scene);
         stage.show();
-    }
-
-    public static void main(String[] args) {
-        launch();
     }
 }
