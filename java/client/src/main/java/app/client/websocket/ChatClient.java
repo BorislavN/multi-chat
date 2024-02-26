@@ -2,7 +2,6 @@ package app.client.websocket;
 
 
 import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.StringProperty;
 import javafx.stage.Stage;
 
 public interface ChatClient {
@@ -10,7 +9,7 @@ public interface ChatClient {
 
     void closeClient(Stage stage);
 
-    StringProperty getMessageProperty();
+    MessageProperty getMessageProperty();
 
     BooleanProperty getIsConnectedProperty();
 }

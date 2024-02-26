@@ -13,11 +13,10 @@ import static java.nio.channels.SelectionKey.OP_WRITE;
 public class ConnectionData {
     private String username;
     private boolean wasUpgraded;
-    private boolean receivedPing;
     private boolean receivedClose;
     private boolean sentClose;
     private int totalFragmentLength;
-    private FrameData lastFrame;
+    private FrameData currentFrame;
     private final List<ByteBuffer> fragments;
     private final SelectionKey selectionKey;
     private final Deque<ByteBuffer> waitingFrames;
@@ -26,11 +25,10 @@ public class ConnectionData {
         this.selectionKey = key;
         this.username = null;
         this.wasUpgraded = false;
-        this.receivedPing = false;
         this.receivedClose = false;
         this.sentClose = false;
-        this.totalFragmentLength=0;
-        this.lastFrame=new FrameData();
+        this.totalFragmentLength = 0;
+        this.currentFrame = new FrameData();
         this.waitingFrames = new ArrayDeque<>();
         this.fragments = new ArrayList<>();
     }
@@ -49,14 +47,6 @@ public class ConnectionData {
 
     public void setWasUpgraded(boolean wasUpgraded) {
         this.wasUpgraded = wasUpgraded;
-    }
-
-    public boolean receivedPing() {
-        return this.receivedPing;
-    }
-
-    public void setReceivedPing(boolean receivedPing) {
-        this.receivedPing = receivedPing;
     }
 
     public boolean receivedClose() {
@@ -83,12 +73,12 @@ public class ConnectionData {
         return (SocketChannel) this.selectionKey.channel();
     }
 
-    public FrameData getLastFrame() {
-        return this.lastFrame;
+    public FrameData getCurrentFrame() {
+        return this.currentFrame;
     }
 
-    public void resetLastFrame() {
-        this.lastFrame = new FrameData();
+    public void resetCurrentFrame() {
+        this.currentFrame = new FrameData();
     }
 
     public ByteBuffer pollFrame() {
@@ -116,9 +106,9 @@ public class ConnectionData {
     }
 
     public void addFragment(ByteBuffer fragment) {
-        this.totalFragmentLength+=fragment.capacity();
+        this.totalFragmentLength += fragment.capacity();
 
-        if (this.totalFragmentLength> MESSAGE_LIMIT){
+        if (this.totalFragmentLength > MESSAGE_LIMIT) {
             throw new MessageLengthException("Message limit exceed!");
         }
 
@@ -131,7 +121,7 @@ public class ConnectionData {
     }
 
     public void clearFragments() {
-        this.totalFragmentLength=0;
+        this.totalFragmentLength = 0;
         this.fragments.clear();
     }
 

@@ -9,6 +9,7 @@ import app.server.minimal.exception.MessageLengthException;
 import app.server.minimal.helper.ChannelHelper;
 import app.server.minimal.helper.FrameBuilder;
 import app.server.minimal.helper.ServerUtil;
+import app.util.Constants;
 import app.util.Logger;
 
 import java.io.IOException;
@@ -39,11 +40,6 @@ socket.addEventListener("open", (event) => {
 });
 */
 
-//TODO: needs refactoring
-// 0: make full use of sent/received close boolean flags
-// 1: ping/pong functionality
-// 2: move log templates to static methods
-// 3: spamming handling?
 public class Server {
     private ServerSocketChannel server;
     private Selector selector;
@@ -90,12 +86,16 @@ public class Server {
 
                     } catch (MalformedFrameException e) {
                         this.terminateConnection(key, 1002, e.getMessage());
+
                     } catch (MessageLengthException e) {
                         this.terminateConnection(key, 1009, e.getMessage());
+
                     } catch (IllegalStateException e) {
                         this.terminateConnection(key, 1011, e.getMessage());
+
                     } catch (IOException | ConnectionException e) {
                         Logger.logError("Exception encountered", e);
+
                         this.disconnectUser(key);
                     }
 
@@ -144,7 +144,7 @@ public class Server {
             if (connectionData.wasUpgraded()) {
                 this.utilities.readFrame(connectionData);
 
-                FrameData lastFrame = connectionData.getLastFrame();
+                FrameData lastFrame = connectionData.getCurrentFrame();
 
                 if (lastFrame.isReadCompleted()) {
                     Logger.log(lastFrame.getMessage());
@@ -194,34 +194,35 @@ public class Server {
 
                 ChannelHelper.writeBytes(connection, pendingFrame);
 
-                if (this.wasCloseFrame(pendingFrame.get(0)) && data.receivedClose()) {
-                    this.disconnectUser(key);
+                if (this.wasCloseFrame(pendingFrame.get(0))) {
+                    if (data.receivedClose() && data.sentClose()) {
+                        this.disconnectUser(key);
+                    }
                 }
             }
         }
     }
 
     private void handleCloseRequest(ConnectionData connectionData) {
-        if (this.isFragment(connectionData.getLastFrame())) {
-            throw new IllegalStateException("Control frames cannot be fragmented!");
-        }
+        this.validateControlFrame(connectionData.getCurrentFrame());
 
         connectionData.setReceivedClose(true);
-        connectionData.enqueuePriorityMessage(FrameBuilder.copyFrame(connectionData.getLastFrame()));
+
+        if (!connectionData.sentClose()) {
+            connectionData.enqueuePriorityMessage(FrameBuilder.copyFrame(connectionData.getCurrentFrame()));
+
+            connectionData.setSentClose(true);
+        }
     }
 
     private void handlePingRequest(ConnectionData connectionData) {
-        if (this.isFragment(connectionData.getLastFrame())) {
-            throw new IllegalStateException("Control frames cannot be fragmented!");
-        }
+        this.validateControlFrame(connectionData.getCurrentFrame());
 
-        connectionData.setReceivedPing(true);
-
-        connectionData.enqueuePriorityMessage(FrameBuilder.buildPongFrame(connectionData.getLastFrame()));
+        connectionData.enqueuePriorityMessage(FrameBuilder.buildPongFrame(connectionData.getCurrentFrame()));
     }
 
     private void handleMessage(ConnectionData connectionData) {
-        ByteBuffer frame = FrameBuilder.copyFrame(connectionData.getLastFrame());
+        ByteBuffer frame = FrameBuilder.copyFrame(connectionData.getCurrentFrame());
 
         if (this.handleFragment(connectionData, frame)) {
             return;
@@ -248,10 +249,10 @@ public class Server {
     }
 
     private boolean handleFragment(ConnectionData connectionData, ByteBuffer frame) {
-        if (this.isFragment(connectionData.getLastFrame())) {
+        if (this.isFragment(connectionData.getCurrentFrame())) {
             connectionData.addFragment(frame);
 
-            if (connectionData.getLastFrame().isFinished()) {
+            if (connectionData.getCurrentFrame().isFinished()) {
                 this.enqueueFragmentsToAllUsers(connectionData);
             }
 
@@ -261,9 +262,8 @@ public class Server {
         return false;
     }
 
-    //TODO: debug, this stopped working properly
     private boolean handleUsernameSelection(ConnectionData connectionData) {
-        FrameData lastFrame = connectionData.getLastFrame();
+        FrameData lastFrame = connectionData.getCurrentFrame();
 
         if (lastFrame.getMessage().startsWith(COMMAND_DELIMITER)) {
             String name = lastFrame.getMessage().substring(COMMAND_DELIMITER.length());
@@ -271,23 +271,27 @@ public class Server {
             String announcement = null;
 
             if (name.length() < MIN_USERNAME_LENGTH) {
-                responseText = String.format("%s%sMust be least %d chars!", EXCEPTION_FLAG, COMMAND_DELIMITER, MIN_USERNAME_LENGTH);
+                responseText = USERNAME_TOO_SHORT;
             }
 
-            if (responseText == null && !this.isUsernameAvailable(connectionData, name)) {
-                responseText = String.format("%s%sUsername is taken!", EXCEPTION_FLAG, COMMAND_DELIMITER);
+            if (name.length() > MAX_USERNAME_LENGTH) {
+                responseText = USERNAME_TOO_LONG;
+            }
+
+            if (!this.isUsernameAvailable(connectionData, name)) {
+                responseText = USERNAME_TAKEN;
             }
 
             if (responseText == null) {
-                responseText = String.format("%s%s%s", ACCEPTED_FLAG, COMMAND_DELIMITER, name);
+                responseText = Constants.newAcceptedResponse(name);
 
                 String oldName = connectionData.getUsername();
 
                 if (!name.equals(oldName)) {
-                    announcement = String.format("\"%s\" joined the chat!", name);
+                    announcement = Constants.newJoinedAnnouncement(name);
 
                     if (oldName != null) {
-                        announcement = String.format("\"%s\" changed their name to \"%s\".", oldName, name);
+                        announcement = Constants.newChangedNameAnnouncement(oldName, name);
                     }
 
                     connectionData.setUsername(name);
@@ -306,6 +310,12 @@ public class Server {
         }
 
         return false;
+    }
+
+    private void validateControlFrame(FrameData frame) {
+        if (this.isFragment(frame)) {
+            throw new IllegalStateException("Control frames cannot be fragmented!");
+        }
     }
 
     private boolean isFragment(FrameData frameData) {
@@ -347,9 +357,7 @@ public class Server {
             ConnectionData removed = this.activeConnections.remove(connectionId);
 
             if (removed.getUsername() != null) {
-                ByteBuffer announcement = FrameBuilder.buildTextFrame(
-                        String.format("\"%s\" left the chat...", removed.getUsername())
-                );
+                ByteBuffer announcement = FrameBuilder.buildTextFrame(Constants.newLeftAnnouncement(removed.getUsername()));
 
                 this.enqueueToAllUsers(announcement);
             }
@@ -376,18 +384,13 @@ public class Server {
                 && this.selector != null && this.selector.isOpen();
     }
 
-    //TODO: refactor old nio code, to close channels properly
     private void shutdown() {
         try {
             System.out.println("Starting shutdown process...");
 
-            if (this.selector != null) {
-                for (SelectionKey key : this.selector.keys()) {
-                    key.channel().close();
-                }
+            this.selector.close();
+            this.server.close();
 
-                this.selector.close();
-            }
         } catch (IOException e) {
             Logger.logError("Server encountered exception while shutting down", e);
         }

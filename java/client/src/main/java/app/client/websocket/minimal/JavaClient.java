@@ -1,8 +1,8 @@
 package app.client.websocket.minimal;
 
 import app.client.websocket.ChatClient;
+import app.client.websocket.MessageProperty;
 import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.StringProperty;
 import javafx.stage.Stage;
 
 import java.net.URI;
@@ -12,6 +12,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CompletionException;
 
+//TODO: chat spamming functionality
 public class JavaClient implements ChatClient {
     private final WebSocket webSocket;
     private final Listener listener;
@@ -66,7 +67,7 @@ public class JavaClient implements ChatClient {
     }
 
     @Override
-    public StringProperty getMessageProperty() {
+    public MessageProperty getMessageProperty() {
         return this.listener.getLatestMessageProperty();
     }
 

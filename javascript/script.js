@@ -16,6 +16,8 @@ const textArea = document.getElementById("area");
 const messageInput = document.getElementById("messageField");
 const sendBtn = document.getElementById("sendBtn");
 
+//TODO: chat spamming functionality
+
 const socket = new WebSocket("ws://localhost:80");
 
 socket.addEventListener("open", (event) => {
@@ -80,6 +82,12 @@ function onJoinClick() {
 
   if ("valid" !== status) {
     this.showLoginError(status);
+
+    return;
+  }
+
+  if (currentName === value) {
+    this.showMainPage();
 
     return;
   }

@@ -1,6 +1,5 @@
 package app.client;
 
-import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
@@ -23,14 +22,14 @@ public class Helper {
         stage.setOnCloseRequest((event -> controller.onClose(event, stage)));
         controller.configureClient(type);
 
-        String title="Chat Client";
+        String title = "Chat Client";
 
-        if (1==type){
-            title="Java Client";
+        if (1 == type) {
+            title = "Java Client";
         }
 
-        if (2==type){
-            title="Jakarta Client";
+        if (2 == type) {
+            title = "Jakarta Client";
         }
 
         stage.setTitle(title);

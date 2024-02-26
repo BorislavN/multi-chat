@@ -1,21 +1,23 @@
 package app.client.websocket.proper;
 
+import app.client.websocket.MessageProperty;
 import app.util.Logger;
-import jakarta.websocket.*;
+import jakarta.websocket.ClientEndpoint;
+import jakarta.websocket.OnClose;
+import jakarta.websocket.OnError;
+import jakarta.websocket.OnMessage;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 
 @ClientEndpoint
 public class Listener {
-    private final StringProperty latestMessageProperty;
+    private final MessageProperty latestMessageProperty;
     private final BooleanProperty isConnectedProperty;
     private volatile boolean closeInitiated;
 
     public Listener() {
-        this.latestMessageProperty = new SimpleStringProperty(null);
+        this.latestMessageProperty = new MessageProperty(null);
         this.isConnectedProperty = new SimpleBooleanProperty(true);
         this.closeInitiated = false;
     }
@@ -49,7 +51,7 @@ public class Listener {
         this.setIsConnectedProperty(false);
     }
 
-    public StringProperty getLatestMessageProperty() {
+    public MessageProperty getLatestMessageProperty() {
         return this.latestMessageProperty;
     }
 

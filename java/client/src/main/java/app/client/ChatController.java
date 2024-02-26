@@ -1,6 +1,7 @@
 package app.client;
 
 import app.client.websocket.ChatClient;
+import app.client.websocket.ValueListener;
 import app.client.websocket.minimal.JavaClient;
 import app.client.websocket.proper.JakartaClient;
 import javafx.beans.value.ChangeListener;
@@ -39,10 +40,12 @@ public class ChatController {
     private Button sendBtn;
     private ChatClient client;
     private String username;
+    private ChangeListener<Boolean> connectionListener;
 
     public ChatController() {
         this.client = null;
         this.username = null;
+        this.connectionListener = null;
     }
 
     @FXML
@@ -52,20 +55,6 @@ public class ChatController {
         this.clearError();
 
         String username = this.usernameInput.getText();
-
-        if (username.length() < MIN_USERNAME_LENGTH) {
-            this.showError(String.format("Username too short, min: %d chars!", MIN_USERNAME_LENGTH));
-            this.usernameInput.setStyle("-fx-border-color: red");
-
-            return;
-        }
-
-        if (username.length() > MAX_USERNAME_LENGTH) {
-            this.showError(String.format("Username too long, limit %d chars!", MAX_USERNAME_LENGTH));
-            this.usernameInput.setStyle("-fx-border-color: red");
-
-            return;
-        }
 
         if (username.equals(this.username)) {
             switchPage();
@@ -86,13 +75,6 @@ public class ChatController {
 
         if (message.isBlank()) {
             this.showError("Input cannot be blank!");
-            this.messageInput.setStyle("-fx-border-color: red");
-
-            return;
-        }
-
-        if (message.length() > MESSAGE_LIMIT) {
-            this.showError(String.format("Message too long, limit %d B", MESSAGE_LIMIT));
             this.messageInput.setStyle("-fx-border-color: red");
 
             return;
@@ -133,8 +115,7 @@ public class ChatController {
         event.consume();
 
         this.client.closeClient(stage);
-        this.client.getIsConnectedProperty().unbind();
-        this.client.getMessageProperty().unbind();
+        this.client.getIsConnectedProperty().removeListener(this.connectionListener);
     }
 
     public void configureClient(int type) {
@@ -152,12 +133,14 @@ public class ChatController {
             return;
         }
 
-        this.client.getMessageProperty().addListener(this.createMessageListener());
-        this.client.getIsConnectedProperty().addListener(this.createConnectionStateListener());
+        this.connectionListener = this.createConnectionStateListener();
+
+        this.client.getMessageProperty().setValueListener(this.createMessageListener());
+        this.client.getIsConnectedProperty().addListener(this.connectionListener);
     }
 
-    private ChangeListener<String> createMessageListener() {
-        return (observable, oldValue, newValue) -> {
+    private ValueListener createMessageListener() {
+        return newValue -> {
             if (newValue.startsWith(ACCEPTED_FLAG)) {
                 String[] data = newValue.split(COMMAND_DELIMITER);
                 String inputValue = this.usernameInput.getText();

@@ -4,9 +4,6 @@ There is no way to connect the js client without significantly reworking my impl
 
 The server implementation - https://github.com/BorislavN/javafx-demo/blob/main/unicast/src/main/java/app/unicast/nio/ChatServer.java
 
-Looked around on the web and found different solutions, that enable socket/websocket communication.
-While it does work, it seems like black magic to say the least.
-
 So, I decided to create this repository.
 Here I will try to implement a cross-platform chat,
 one that enables both JavaScript and JavaFX clients to communicate using WebSocket protocol.

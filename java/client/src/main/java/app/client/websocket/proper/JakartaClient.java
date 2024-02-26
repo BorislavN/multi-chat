@@ -1,16 +1,17 @@
 package app.client.websocket.proper;
 
 import app.client.websocket.ChatClient;
+import app.client.websocket.MessageProperty;
 import app.util.Logger;
 import jakarta.websocket.*;
 import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.StringProperty;
 import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.net.URI;
 
-
+//TODO: chat spamming functionality
+// see if the jakarta implementation waits for a close frame or it closes
 public class JakartaClient implements ChatClient {
     private final Listener listener;
     private final Session session;
@@ -39,7 +40,7 @@ public class JakartaClient implements ChatClient {
 
     @Override
     public void closeClient(Stage stage) {
-        if (this.session!=null&&!this.listener.isCloseInitiated()) {
+        if (this.session != null && !this.listener.isCloseInitiated()) {
             this.listener.setCloseInitiated(true);
 
             try {
@@ -55,7 +56,7 @@ public class JakartaClient implements ChatClient {
     }
 
     @Override
-    public StringProperty getMessageProperty() {
+    public MessageProperty getMessageProperty() {
         return this.listener.getLatestMessageProperty();
     }
 

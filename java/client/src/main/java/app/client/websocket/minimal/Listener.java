@@ -1,11 +1,10 @@
 package app.client.websocket.minimal;
 
+import app.client.websocket.MessageProperty;
 import app.util.Logger;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 
 import java.net.http.WebSocket;
 import java.util.Timer;
@@ -13,7 +12,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 public class Listener implements WebSocket.Listener {
-    private final StringProperty latestMessageProperty;
+    private final MessageProperty latestMessageProperty;
     private final BooleanProperty isConnectedProperty;
     private CompletableFuture<?> messageStage;
     private volatile boolean closeInitiated;
@@ -21,7 +20,7 @@ public class Listener implements WebSocket.Listener {
     private final Timer timer;
 
     public Listener(Timer timer) {
-        this.latestMessageProperty = new SimpleStringProperty(null);
+        this.latestMessageProperty = new MessageProperty(null);
         this.isConnectedProperty = new SimpleBooleanProperty(true);
         this.stringBuilder = new StringBuilder();
         this.messageStage = new CompletableFuture<>();
@@ -68,6 +67,7 @@ public class Listener implements WebSocket.Listener {
         WebSocket.Listener.super.onError(webSocket, error);
     }
 
+    //TODO: rework? Maybe a separate Future will be needed, just like the message, it needs to be tested, the ping functionality too
     @Override
     public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
         if (this.closeInitiated) {
@@ -83,7 +83,7 @@ public class Listener implements WebSocket.Listener {
         return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
     }
 
-    public StringProperty getLatestMessageProperty() {
+    public MessageProperty getLatestMessageProperty() {
         return this.latestMessageProperty;
     }
 

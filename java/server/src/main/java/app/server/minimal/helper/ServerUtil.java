@@ -47,50 +47,50 @@ public class ServerUtil {
         try {
             SocketChannel connection = connectionData.getConnection();
 
-            if (connectionData.getLastFrame().isReadCompleted()) {
-                connectionData.resetLastFrame();
+            if (connectionData.getCurrentFrame().isReadCompleted()) {
+                connectionData.resetCurrentFrame();
             }
 
-            FrameData lastFrame = connectionData.getLastFrame();
-            lastFrame.incrementAttempts();
+            FrameData current = connectionData.getCurrentFrame();
+            current.incrementAttempts();
 
-            if (lastFrame.getStage() == 0) {
-                if (!ChannelHelper.readBytes(connection, lastFrame.getMetadata())) {
+            if (current.getStage() == 0) {
+                if (!ChannelHelper.readBytes(connection, current.getMetadata())) {
                     return;
                 }
 
-                lastFrame.validateMetadata();
+                current.validateMetadata();
 
-                lastFrame.incrementStage();
+                current.incrementStage();
             }
 
-            if (lastFrame.getStage() == 1) {
-                this.readExtendedLength(connection, lastFrame);
+            if (current.getStage() == 1) {
+                this.readExtendedLength(connection, current);
 
-                if (lastFrame.getExtendedLength() != null && lastFrame.getExtendedLength().hasRemaining()) {
+                if (current.getExtendedLength() != null && current.getExtendedLength().hasRemaining()) {
                     return;
                 }
 
-                lastFrame.incrementStage();
+                current.incrementStage();
             }
 
-            if (lastFrame.getStage() == 2) {
+            if (current.getStage() == 2) {
 
-                if (!ChannelHelper.readBytes(connection, lastFrame.getMask())) {
+                if (!ChannelHelper.readBytes(connection, current.getMask())) {
                     return;
                 }
 
-                lastFrame.incrementStage();
+                current.incrementStage();
             }
 
-            if (lastFrame.getStage() == 3) {
-                lastFrame.initPayload(lastFrame.getPayloadLength());
+            if (current.getStage() == 3) {
+                current.initPayload(current.getPayloadLength());
 
-                if (!ChannelHelper.readBytes(connection, lastFrame.getPayload())) {
+                if (!ChannelHelper.readBytes(connection, current.getPayload())) {
                     return;
                 }
 
-                lastFrame.incrementStage();
+                current.incrementStage();
             }
 
         } catch (IOException e) {
