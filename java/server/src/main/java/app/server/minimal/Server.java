@@ -40,6 +40,7 @@ socket.addEventListener("open", (event) => {
 });
 */
 
+//TODO: test close and ping/pong functionality
 public class Server {
     private ServerSocketChannel server;
     private Selector selector;

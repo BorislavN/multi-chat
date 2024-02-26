@@ -12,7 +12,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CompletionException;
 
-//TODO: chat spamming functionality
 public class JavaClient implements ChatClient {
     private final WebSocket webSocket;
     private final Listener listener;

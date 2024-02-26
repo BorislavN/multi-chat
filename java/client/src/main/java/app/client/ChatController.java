@@ -40,11 +40,13 @@ public class ChatController {
     private Button sendBtn;
     private ChatClient client;
     private String username;
+    private String lastMessage;
     private ChangeListener<Boolean> connectionListener;
 
     public ChatController() {
         this.client = null;
         this.username = null;
+        this.lastMessage = null;
         this.connectionListener = null;
     }
 
@@ -80,10 +82,19 @@ public class ChatController {
             return;
         }
 
-        if (this.username != null) {
-            message = String.format("%s: %s", this.username, message);
-            this.client.sendMessage(message);
+        if (message.equals(this.lastMessage)) {
+            this.textArea.appendText(CHAT_SPAMMING);
+            this.textArea.appendText(System.lineSeparator());
 
+            this.messageInput.clear();
+
+            return;
+        }
+
+        if (this.username != null) {
+            this.client.sendMessage(String.format("%s: %s", this.username, message));
+
+            this.lastMessage=message;
             this.messageInput.clear();
         }
     }

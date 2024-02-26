@@ -67,7 +67,7 @@ public class Listener implements WebSocket.Listener {
         WebSocket.Listener.super.onError(webSocket, error);
     }
 
-    //TODO: rework? Maybe a separate Future will be needed, just like the message, it needs to be tested, the ping functionality too
+    //TODO: rework? Maybe a separate Future will be needed, just like the message
     @Override
     public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
         if (this.closeInitiated) {

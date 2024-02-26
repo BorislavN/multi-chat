@@ -168,7 +168,7 @@ public class FrameData {
 
         int opcode = this.metadata.get(0) & 15;
 
-        if (opcode == 0 || opcode == 1 || opcode == 8 || opcode == 9) {
+        if (opcode == 0 || opcode == 1 || opcode == 8 || opcode == 9 || opcode == 10) {
             //Opcode is valid
             return;
         }
@@ -190,7 +190,6 @@ public class FrameData {
                     + (Byte.toUnsignedLong(this.extendedLength.get(5)) << 16)
                     + (Byte.toUnsignedLong(this.extendedLength.get(6)) << 8)
                     + (Byte.toUnsignedLong(this.extendedLength.get(7)));
-
 
 
             if (tempValue > MESSAGE_LIMIT) {

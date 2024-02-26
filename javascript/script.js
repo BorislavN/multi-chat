@@ -1,4 +1,5 @@
 var currentName;
+var lastMessage;
 
 const COMMAND_DELIMITER = "@";
 const ACCEPTED_FLAG = "accepted";
@@ -15,8 +16,6 @@ const backBtn = document.getElementById("backBtn");
 const textArea = document.getElementById("area");
 const messageInput = document.getElementById("messageField");
 const sendBtn = document.getElementById("sendBtn");
-
-//TODO: chat spamming functionality
 
 const socket = new WebSocket("ws://localhost:80");
 
@@ -47,13 +46,7 @@ socket.addEventListener("message", (event) => {
     return;
   }
 
-  let isAtBottom = (textArea.scrollTop + textArea.clientHeight) === textArea.scrollHeight;
-
-  textArea.value += `${message}\n`;
-
-  if (isAtBottom) {
-    textArea.scrollTop = textArea.scrollHeight;
-  };
+  this.appendToTextArea(message);
 });
 
 socket.addEventListener("error", (event) => {
@@ -105,11 +98,30 @@ function onSendClick() {
     return;
   }
 
+  if (lastMessage === value) {
+    this.appendToTextArea("Chat spamming!");
+    messageInput.value = "";
+
+    return;
+  }
+
   socket.send(`${currentName}: ${value}`);
 
   messageInput.value = "";
+  lastMessage=value;
+
   this.setAnnouncement();
 };
+
+function appendToTextArea(message) {
+  let isAtBottom = (textArea.scrollTop + textArea.clientHeight) === textArea.scrollHeight;
+
+  textArea.value += `${message}\n`;
+
+  if (isAtBottom) {
+    textArea.scrollTop = textArea.scrollHeight;
+  };
+}
 
 function onChangeNameClick() {
   this.toggleVisibility();

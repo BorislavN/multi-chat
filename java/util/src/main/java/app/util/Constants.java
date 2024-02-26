@@ -11,19 +11,21 @@ public class Constants {
     public static final String USERNAME_TOO_SHORT = String.format("%s%sMust be ar least %d chars!", EXCEPTION_FLAG, COMMAND_DELIMITER, MIN_USERNAME_LENGTH);
     public static final String USERNAME_TOO_LONG = String.format("%s%sMust be less than %d chars!", EXCEPTION_FLAG, COMMAND_DELIMITER, MAX_USERNAME_LENGTH);
     public static final String USERNAME_TAKEN = String.format("%s%sUsername is taken!", EXCEPTION_FLAG, COMMAND_DELIMITER);
-    public static String newAcceptedResponse(String name){
-       return String.format("%s%s%s", ACCEPTED_FLAG, COMMAND_DELIMITER, name);
+    public static final String CHAT_SPAMMING = "Chat spamming!";
+
+    public static String newAcceptedResponse(String name) {
+        return String.format("%s%s%s", ACCEPTED_FLAG, COMMAND_DELIMITER, name);
     }
 
-    public static String newJoinedAnnouncement(String name){
+    public static String newJoinedAnnouncement(String name) {
         return String.format("\"%s\" joined the chat!", name);
     }
 
-    public static String newChangedNameAnnouncement(String oldName,String newName){
+    public static String newChangedNameAnnouncement(String oldName, String newName) {
         return String.format("\"%s\" changed their name to \"%s\".", oldName, newName);
     }
 
-    public static String newLeftAnnouncement(String name){
-        return String.format("\"%s\" left the chat...",name);
+    public static String newLeftAnnouncement(String name) {
+        return String.format("\"%s\" left the chat...", name);
     }
 }

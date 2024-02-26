@@ -10,8 +10,7 @@ import javafx.stage.Stage;
 import java.io.IOException;
 import java.net.URI;
 
-//TODO: chat spamming functionality
-// see if the jakarta implementation waits for a close frame or it closes
+//TODO: see if the jakarta implementation waits for a close frame or it closes
 public class JakartaClient implements ChatClient {
     private final Listener listener;
     private final Session session;

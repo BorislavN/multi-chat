@@ -74,7 +74,6 @@ public class FrameBuilder {
         return copyFrame(frameData);
     }
 
-    //TODO: seek a better way to copy frame
     public static ByteBuffer copyFrame(FrameData frameData) {
         ByteBuffer newFrame;
         byte[] payload = frameData.getPayload().array();
