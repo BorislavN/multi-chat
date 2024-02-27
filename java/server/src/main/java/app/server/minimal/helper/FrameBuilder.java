@@ -67,11 +67,7 @@ public class FrameBuilder {
 
 
     public static ByteBuffer buildPongFrame(FrameData frameData) {
-        byte firstByte = (byte) (frameData.getFirstByte() & 10);
-
-        frameData.getMetadata().put(0, firstByte);
-
-        return copyFrame(frameData);
+        return buildFrame(true, 10, frameData.getPayload().array());
     }
 
     public static ByteBuffer copyFrame(FrameData frameData) {

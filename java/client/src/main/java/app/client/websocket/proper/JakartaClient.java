@@ -9,8 +9,6 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.net.URI;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 
 //TODO: see if the jakarta implementation waits for a close frame or it closes
 public class JakartaClient implements ChatClient {
@@ -36,12 +34,7 @@ public class JakartaClient implements ChatClient {
 
     @Override
     public void sendMessage(String message) {
-        try {
-            this.session.getAsyncRemote().sendPing(ByteBuffer.wrap(message.getBytes(StandardCharsets.UTF_8)));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-//        this.session.getAsyncRemote().sendText(message);
+        this.session.getAsyncRemote().sendText(message);
     }
 
     @Override

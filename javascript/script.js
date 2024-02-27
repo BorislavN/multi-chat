@@ -91,10 +91,6 @@ function onJoinClick() {
 };
 
 function onSendClick() {
-  //TODO: check close
-  socket.close(1000, "yoo")
-  return;
-
   let value = messageInput.value;
   let status = this.validateText(value);
 

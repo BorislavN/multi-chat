@@ -7,8 +7,6 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 
 import java.net.http.WebSocket;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Timer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -82,13 +80,6 @@ public class Listener implements WebSocket.Listener {
         this.closeInitiated = true;
 
         return webSocket.sendClose(statusCode, reason);
-    }
-
-    @Override
-    public CompletionStage<?> onPong(WebSocket webSocket, ByteBuffer message) {
-        System.out.println(StandardCharsets.UTF_8.decode(message));
-
-        return WebSocket.Listener.super.onPong(webSocket, message);
     }
 
     public MessageProperty getLatestMessageProperty() {

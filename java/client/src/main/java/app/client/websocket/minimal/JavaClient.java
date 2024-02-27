@@ -8,8 +8,6 @@ import javafx.stage.Stage;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CompletionException;
@@ -42,8 +40,7 @@ public class JavaClient implements ChatClient {
 
     @Override
     public void sendMessage(String message) {
-        this.webSocket.sendPing(ByteBuffer.wrap(message.getBytes(StandardCharsets.UTF_8)));
-//        this.webSocket.sendText(message, true);
+        this.webSocket.sendText(message, true);
     }
 
     @Override
