@@ -19,6 +19,8 @@ import javafx.stage.WindowEvent;
 
 import static app.util.Constants.*;
 
+//TODO: display actual close reason, not only "Connection closed!"
+// both there and on the js client
 public class ChatController {
     @FXML
     private VBox usernamePage, mainPage;

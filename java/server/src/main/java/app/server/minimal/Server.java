@@ -40,7 +40,7 @@ socket.addEventListener("open", (event) => {
 });
 */
 
-//TODO: test close and ping/pong functionality
+//TODO: test ping/pong functionality
 public class Server {
     private ServerSocketChannel server;
     private Selector selector;
@@ -209,11 +209,14 @@ public class Server {
 
         connectionData.setReceivedClose(true);
 
-        if (!connectionData.sentClose()) {
-            connectionData.enqueuePriorityMessage(FrameBuilder.copyFrame(connectionData.getCurrentFrame()));
+        if (connectionData.receivedClose() && connectionData.sentClose()) {
+            this.disconnectUser(connectionData.getSelectionKey());
 
-            connectionData.setSentClose(true);
+            return;
         }
+
+        connectionData.enqueuePriorityMessage(FrameBuilder.copyFrame(connectionData.getCurrentFrame()));
+        connectionData.setSentClose(true);
     }
 
     private void handlePingRequest(ConnectionData connectionData) {

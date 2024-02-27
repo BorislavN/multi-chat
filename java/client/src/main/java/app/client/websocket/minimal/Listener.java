@@ -7,6 +7,8 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 
 import java.net.http.WebSocket;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Timer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -67,20 +69,26 @@ public class Listener implements WebSocket.Listener {
         WebSocket.Listener.super.onError(webSocket, error);
     }
 
-    //TODO: rework? Maybe a separate Future will be needed, just like the message
     @Override
     public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
-        if (this.closeInitiated) {
-            this.timer.cancel();
-            webSocket.abort();
-
-        } else {
-            this.closeInitiated = true;
-        }
-
         this.setIsConnectedProperty(false);
 
-        return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
+        if (this.closeInitiated) {
+            this.timer.cancel();
+
+            return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
+        }
+
+        this.closeInitiated = true;
+
+        return webSocket.sendClose(statusCode, reason);
+    }
+
+    @Override
+    public CompletionStage<?> onPong(WebSocket webSocket, ByteBuffer message) {
+        System.out.println(StandardCharsets.UTF_8.decode(message));
+
+        return WebSocket.Listener.super.onPong(webSocket, message);
     }
 
     public MessageProperty getLatestMessageProperty() {

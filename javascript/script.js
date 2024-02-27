@@ -63,6 +63,8 @@ socket.addEventListener("error", (event) => {
 socket.addEventListener("close", (event) => {
   this.disableAllButtons();
 
+  console.log(event.reason);
+
   this.showLoginError("Connection closed!");
   this.setAnnouncement("Connection closed!")
 });
@@ -89,6 +91,10 @@ function onJoinClick() {
 };
 
 function onSendClick() {
+  //TODO: check close
+  socket.close(1000, "yoo")
+  return;
+
   let value = messageInput.value;
   let status = this.validateText(value);
 
@@ -108,7 +114,7 @@ function onSendClick() {
   socket.send(`${currentName}: ${value}`);
 
   messageInput.value = "";
-  lastMessage=value;
+  lastMessage = value;
 
   this.setAnnouncement();
 };
