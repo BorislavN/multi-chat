@@ -40,6 +40,7 @@ socket.addEventListener("open", (event) => {
 });
 */
 
+//TODO: decide if the clients will receive messages before choosing an username for the first time
 public class JavaServer {
     private ServerSocketChannel server;
     private Selector selector;

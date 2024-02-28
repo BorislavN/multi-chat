@@ -19,7 +19,6 @@ import javafx.stage.WindowEvent;
 
 import static app.util.Constants.*;
 
-//TODO: fix pressing repeatedly "ENTER" switches between scenes
 public class ChatController {
     @FXML
     private VBox usernamePage, mainPage;
@@ -120,7 +119,6 @@ public class ChatController {
         actionEvent.consume();
 
         this.switchPage();
-        this.usernameInput.end();
     }
 
     public void onClose(WindowEvent event, Stage stage) {
@@ -231,14 +229,19 @@ public class ChatController {
 
         boolean uVisibility = false;
         boolean mVisibility = true;
+        TextField tempField = this.messageInput;
 
         if (this.mainPage.isVisible()) {
             mVisibility = false;
             uVisibility = true;
+            tempField=this.usernameInput;
         }
 
         this.setVisibility(this.usernamePage, uVisibility);
         this.setVisibility(this.mainPage, mVisibility);
+
+        tempField.requestFocus();
+        tempField.end();
 
         this.clearError();
         window.sizeToScene();
