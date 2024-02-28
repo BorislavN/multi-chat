@@ -32,7 +32,7 @@ public class ChannelHelper {
 
         checkForClose(bytesRead);
 
-        return bytesRead == buffer.capacity();
+        return buffer.position() == buffer.capacity();
     }
 
     public static void writeBytes(SocketChannel connection, ByteBuffer buffer) throws IOException {

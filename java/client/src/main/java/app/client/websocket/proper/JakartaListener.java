@@ -4,18 +4,21 @@ import app.client.websocket.MessageProperty;
 import app.util.Logger;
 import jakarta.websocket.*;
 import javafx.application.Platform;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+
+import static app.util.Constants.CONNECTION_CLOSED;
+import static app.util.Constants.CONNECTION_LOST;
 
 @ClientEndpoint
-public class Listener {
+public class JakartaListener {
     private final MessageProperty latestMessageProperty;
-    private final BooleanProperty isConnectedProperty;
+    private final StringProperty isConnectedProperty;
     private volatile boolean closeInitiated;
 
-    public Listener() {
+    public JakartaListener() {
         this.latestMessageProperty = new MessageProperty(null);
-        this.isConnectedProperty = new SimpleBooleanProperty(true);
+        this.isConnectedProperty = new SimpleStringProperty(null);
         this.closeInitiated = false;
     }
 
@@ -36,13 +39,18 @@ public class Listener {
     public void onError(Throwable throwable) {
         Logger.logError("Listener encountered exception", throwable);
 
-        this.setIsConnectedProperty(false);
+        this.setIsConnectedProperty(CONNECTION_LOST);
     }
 
     @OnClose
-    public void onClose(Session session, CloseReason closeReason) {
-        this.setIsConnectedProperty(false);
+    public void onClose(CloseReason closeReason) {
+        String message = CONNECTION_CLOSED;
 
+        if (closeReason.getCloseCode().getCode() != 1000) {
+            message = closeReason.getReasonPhrase();
+        }
+
+        this.setIsConnectedProperty(message);
         this.closeInitiated = true;
     }
 
@@ -50,11 +58,11 @@ public class Listener {
         return this.latestMessageProperty;
     }
 
-    public BooleanProperty getIsConnectedProperty() {
+    public StringProperty getIsConnectedProperty() {
         return this.isConnectedProperty;
     }
 
-    public void setIsConnectedProperty(boolean value) {
+    public void setIsConnectedProperty(String value) {
         Platform.runLater(() -> this.isConnectedProperty.setValue(value));
     }
 }

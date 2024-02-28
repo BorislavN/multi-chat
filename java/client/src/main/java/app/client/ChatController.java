@@ -19,8 +19,7 @@ import javafx.stage.WindowEvent;
 
 import static app.util.Constants.*;
 
-//TODO: display actual close reason, not only "Connection closed!"
-// both there and on the js client
+//TODO: fix pressing repeatedly "ENTER" switches between scenes
 public class ChatController {
     @FXML
     private VBox usernamePage, mainPage;
@@ -43,7 +42,7 @@ public class ChatController {
     private ChatClient client;
     private String username;
     private String lastMessage;
-    private ChangeListener<Boolean> connectionListener;
+    private ChangeListener<String> connectionListener;
 
     public ChatController() {
         this.client = null;
@@ -96,7 +95,7 @@ public class ChatController {
         if (this.username != null) {
             this.client.sendMessage(String.format("%s: %s", this.username, message));
 
-            this.lastMessage=message;
+            this.lastMessage = message;
             this.messageInput.clear();
         }
     }
@@ -181,15 +180,12 @@ public class ChatController {
         };
     }
 
-    private ChangeListener<Boolean> createConnectionStateListener() {
+    private ChangeListener<String> createConnectionStateListener() {
         return (observable, oldValue, newValue) -> {
-            if (newValue) {
-                this.toggleButtons(false);
-                return;
+            if (newValue != null) {
+                this.showError(newValue);
+                this.toggleButtons(true);
             }
-
-            this.showError("Connection lost!");
-            this.toggleButtons(true);
         };
     }
 

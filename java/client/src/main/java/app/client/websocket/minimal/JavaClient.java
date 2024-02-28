@@ -2,7 +2,7 @@ package app.client.websocket.minimal;
 
 import app.client.websocket.ChatClient;
 import app.client.websocket.MessageProperty;
-import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.StringProperty;
 import javafx.stage.Stage;
 
 import java.net.URI;
@@ -12,14 +12,16 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CompletionException;
 
+import static app.util.Constants.CONNECTION_LOST;
+
 public class JavaClient implements ChatClient {
     private final WebSocket webSocket;
-    private final Listener listener;
+    private final JavaListener listener;
     private final Timer timer;
 
     public JavaClient(int port) {
         this.timer = new Timer();
-        this.listener = new Listener(this.timer);
+        this.listener = new JavaListener(this.timer);
 
         WebSocket temp = null;
 
@@ -32,7 +34,7 @@ public class JavaClient implements ChatClient {
 
         } catch (CompletionException e) {
             this.timer.cancel();
-            this.listener.setIsConnectedProperty(false);
+            this.listener.setIsConnectedProperty(CONNECTION_LOST);
         }
 
         this.webSocket = temp;
@@ -51,7 +53,7 @@ public class JavaClient implements ChatClient {
             return;
         }
 
-        if (!this.listener.getIsConnectedProperty().getValue()) {
+        if (this.listener.getIsConnectedProperty().getValue() != null) {
             this.timer.cancel();
             this.webSocket.abort();
             stage.close();
@@ -74,7 +76,7 @@ public class JavaClient implements ChatClient {
     }
 
     @Override
-    public BooleanProperty getIsConnectedProperty() {
+    public StringProperty getIsConnectedProperty() {
         return this.listener.getIsConnectedProperty();
 
     }

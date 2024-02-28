@@ -3,25 +3,28 @@ package app.client.websocket.minimal;
 import app.client.websocket.MessageProperty;
 import app.util.Logger;
 import javafx.application.Platform;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 
 import java.net.http.WebSocket;
 import java.util.Timer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-public class Listener implements WebSocket.Listener {
+import static app.util.Constants.CONNECTION_CLOSED;
+import static app.util.Constants.CONNECTION_LOST;
+
+public class JavaListener implements WebSocket.Listener {
     private final MessageProperty latestMessageProperty;
-    private final BooleanProperty isConnectedProperty;
+    private final StringProperty isConnectedProperty;
     private CompletableFuture<?> messageStage;
     private volatile boolean closeInitiated;
     private StringBuilder stringBuilder;
     private final Timer timer;
 
-    public Listener(Timer timer) {
+    public JavaListener(Timer timer) {
         this.latestMessageProperty = new MessageProperty(null);
-        this.isConnectedProperty = new SimpleBooleanProperty(true);
+        this.isConnectedProperty = new SimpleStringProperty(null);
         this.stringBuilder = new StringBuilder();
         this.messageStage = new CompletableFuture<>();
         this.closeInitiated = false;
@@ -44,13 +47,15 @@ public class Listener implements WebSocket.Listener {
         webSocket.request(1);
 
         if (last) {
-            Platform.runLater(() -> this.latestMessageProperty.setValue(message));
+            String completeMessage = this.stringBuilder.toString();
 
             this.stringBuilder = new StringBuilder();
             this.messageStage.complete(null);
 
             CompletionStage<?> currentStage = this.messageStage;
             this.messageStage = new CompletableFuture<>();
+
+            Platform.runLater(() -> this.latestMessageProperty.setValue(completeMessage));
 
             return currentStage;
         }
@@ -62,14 +67,20 @@ public class Listener implements WebSocket.Listener {
     public void onError(WebSocket webSocket, Throwable error) {
         Logger.logError("Listener encountered exception", error);
 
-        this.setIsConnectedProperty(false);
+        this.setIsConnectedProperty(CONNECTION_LOST);
 
         WebSocket.Listener.super.onError(webSocket, error);
     }
 
     @Override
     public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
-        this.setIsConnectedProperty(false);
+        String message = CONNECTION_CLOSED;
+
+        if (statusCode != 1000) {
+            message = reason;
+        }
+
+        this.setIsConnectedProperty(message);
 
         if (this.closeInitiated) {
             this.timer.cancel();
@@ -86,11 +97,11 @@ public class Listener implements WebSocket.Listener {
         return this.latestMessageProperty;
     }
 
-    public BooleanProperty getIsConnectedProperty() {
+    public StringProperty getIsConnectedProperty() {
         return this.isConnectedProperty;
     }
 
-    public void setIsConnectedProperty(boolean value) {
+    public void setIsConnectedProperty(String value) {
         Platform.runLater(() -> this.isConnectedProperty.setValue(value));
     }
 }

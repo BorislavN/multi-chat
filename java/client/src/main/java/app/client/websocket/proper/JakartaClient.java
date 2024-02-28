@@ -4,19 +4,21 @@ import app.client.websocket.ChatClient;
 import app.client.websocket.MessageProperty;
 import app.util.Logger;
 import jakarta.websocket.*;
-import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.StringProperty;
 import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.net.URI;
 
+import static app.util.Constants.CONNECTION_LOST;
+
 //TODO: see if the jakarta implementation waits for a close frame or it closes
 public class JakartaClient implements ChatClient {
-    private final Listener listener;
+    private final JakartaListener listener;
     private final Session session;
 
     public JakartaClient(int port) {
-        this.listener = new Listener();
+        this.listener = new JakartaListener();
 
         Session temp = null;
 
@@ -25,7 +27,7 @@ public class JakartaClient implements ChatClient {
             temp = container.connectToServer(this.listener, URI.create(String.format("ws://localhost:%d", port)));
 
         } catch (IOException | DeploymentException e) {
-            this.listener.setIsConnectedProperty(false);
+            this.listener.setIsConnectedProperty(CONNECTION_LOST);
         }
 
         this.session = temp;
@@ -60,7 +62,7 @@ public class JakartaClient implements ChatClient {
     }
 
     @Override
-    public BooleanProperty getIsConnectedProperty() {
+    public StringProperty getIsConnectedProperty() {
         return this.listener.getIsConnectedProperty();
     }
 }

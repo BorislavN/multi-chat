@@ -40,15 +40,14 @@ socket.addEventListener("open", (event) => {
 });
 */
 
-//TODO: test ping/pong functionality
-public class Server {
+public class JavaServer {
     private ServerSocketChannel server;
     private Selector selector;
     private final ServerUtil utilities;
     private final Map<Long, ConnectionData> activeConnections;
     private boolean receivedConnection;
 
-    public Server(int port) {
+    public JavaServer(int port) {
         this.activeConnections = new HashMap<>();
         this.receivedConnection = false;
         this.utilities = new ServerUtil();
@@ -401,7 +400,7 @@ public class Server {
     }
 
     public static void main(String[] args) {
-        Server server = new Server(80);
+        JavaServer server = new JavaServer(80);
         server.start();
     }
 }

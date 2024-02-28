@@ -52,8 +52,6 @@ socket.addEventListener("message", (event) => {
 socket.addEventListener("error", (event) => {
   let message = event.target.readyState === 3 ? "Connection closed!" : "Exception occurred!";
 
-  console.log(message);
-
   this.disableAllButtons();
 
   this.showLoginError(message);
@@ -63,10 +61,14 @@ socket.addEventListener("error", (event) => {
 socket.addEventListener("close", (event) => {
   this.disableAllButtons();
 
-  console.log(event.reason);
+  let message="Connection closed!";
 
-  this.showLoginError("Connection closed!");
-  this.setAnnouncement("Connection closed!")
+  if(event.reason && event.code!==1000){
+    message=event.reason;
+  }
+
+  this.showLoginError(message);
+  this.setAnnouncement(message)
 });
 
 document.addEventListener("keydown", this.onEnter);
