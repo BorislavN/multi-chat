@@ -20,10 +20,8 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static app.util.Constants.*;
 
@@ -46,32 +44,39 @@ public class JavaServer implements WebsocketServer {
     private Selector selector;
     private final ServerUtil utilities;
     private final Map<Long, ConnectionData> activeConnections;
-    private boolean receivedConnection;
+    private final AtomicBoolean isRunning;
+    private Thread workerThread;
 
-    public JavaServer(int port) {
+    public JavaServer(String host, int port) {
         this.activeConnections = new HashMap<>();
-        this.receivedConnection = false;
+        this.isRunning = new AtomicBoolean(true);
         this.utilities = new ServerUtil();
+        this.workerThread=null;
 
         try {
             this.server = ServerSocketChannel.open();
-            this.server.bind(new InetSocketAddress(port));
+            this.server.bind(new InetSocketAddress(host, port));
             this.server.configureBlocking(false);
 
-            System.out.println("Server starting on 127.0.0.1:80...");
+            System.out.printf("JavaServer starting on %s:%d...%n", host, port);
 
             this.selector = Selector.open();
             this.server.register(this.selector, SelectionKey.OP_ACCEPT);
 
         } catch (IOException e) {
-            Logger.logError("Server failed to start up", e);
+            Logger.logError("JavaServer failed to start up", e);
+            this.isRunning.set(false);
         }
     }
 
     @Override
     public void start() {
-        if (this.isRunning()) {
-            while (!this.activeConnections.isEmpty() || !this.receivedConnection) {
+        if (!this.isRunning.get()) {
+            return;
+        }
+
+        this.workerThread=new Thread(()->{
+            while (this.isRunning.get()) {
                 this.selectorSelect();
 
                 Iterator<SelectionKey> iterator = this.selector.selectedKeys().iterator();
@@ -105,7 +110,40 @@ public class JavaServer implements WebsocketServer {
                 }
             }
 
-            this.shutdown();
+            System.out.println("Closing!!!!!!!!!");
+        });
+
+        this.workerThread.start();
+    }
+
+    //TODO: rework both this and the "start" method
+    @Override
+    public void shutdown() {
+        System.out.println("Starting shutdown process...");
+        this.isRunning.set(false);
+
+        if (this.workerThread==null){
+            return;
+        }
+
+        try {
+            this.workerThread.interrupt();
+
+            Set<Long> connections = this.activeConnections.keySet();
+
+            for (Long connection : connections) {
+                ConnectionData data = this.activeConnections.get(connection);
+
+                this.terminateConnection(data.getSelectionKey(),1001,"Server shutting down!");
+            }
+
+            System.out.println("Connections left: "+this.activeConnections.size());
+
+            this.selector.close();
+            this.server.close();
+
+        } catch (IOException e) {
+            Logger.logError("Server encountered exception while shutting down", e);
         }
     }
 
@@ -130,7 +168,6 @@ public class JavaServer implements WebsocketServer {
                     ConnectionData data = new ConnectionData(channelKey);
 
                     this.activeConnections.put(nextId, data);
-                    this.receivedConnection = true;
                 }
             } catch (IOException e) {
                 Logger.logAsError("Exception encountered while handling incoming connection!");
@@ -253,6 +290,25 @@ public class JavaServer implements WebsocketServer {
         this.disconnectUser(key);
     }
 
+    private void disconnectUser(SelectionKey key) {
+        try {
+            long connectionId = this.getId(key);
+
+            key.cancel();
+            key.channel().close();
+            ConnectionData removed = this.activeConnections.remove(connectionId);
+
+            if (this.isRunning.get() && removed.getUsername() != null) {
+                ByteBuffer announcement = FrameBuilder.buildTextFrame(Constants.newLeftAnnouncement(removed.getUsername()));
+
+                this.enqueueToAllUsers(announcement);
+            }
+
+        } catch (IOException e) {
+            Logger.logError("Encountered exception while attempting to close channel", e);
+        }
+    }
+
     private boolean handleFragment(ConnectionData connectionData, ByteBuffer frame) {
         if (this.isFragment(connectionData.getCurrentFrame())) {
             connectionData.addFragment(frame);
@@ -355,25 +411,6 @@ public class JavaServer implements WebsocketServer {
         }
     }
 
-    private void disconnectUser(SelectionKey key) {
-        try {
-            long connectionId = this.getId(key);
-
-            key.cancel();
-            key.channel().close();
-            ConnectionData removed = this.activeConnections.remove(connectionId);
-
-            if (removed.getUsername() != null) {
-                ByteBuffer announcement = FrameBuilder.buildTextFrame(Constants.newLeftAnnouncement(removed.getUsername()));
-
-                this.enqueueToAllUsers(announcement);
-            }
-
-        } catch (IOException e) {
-            Logger.logError("Encountered exception while attempting to close channel", e);
-        }
-    }
-
     private boolean wasCloseFrame(byte value) {
         return (value & 0b1111) == 8;
     }
@@ -384,22 +421,5 @@ public class JavaServer implements WebsocketServer {
 
     private long getId(SelectionKey key) {
         return (long) key.attachment();
-    }
-
-    private boolean isRunning() {
-        return this.server != null && this.server.isOpen()
-                && this.selector != null && this.selector.isOpen();
-    }
-
-    private void shutdown() {
-        try {
-            System.out.println("Starting shutdown process...");
-
-            this.selector.close();
-            this.server.close();
-
-        } catch (IOException e) {
-            Logger.logError("Server encountered exception while shutting down", e);
-        }
     }
 }

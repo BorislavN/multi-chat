@@ -19,6 +19,7 @@ import javafx.stage.WindowEvent;
 
 import static app.util.Constants.*;
 
+//TODO: move "chat spamming" message to "announcement" panel (in js too)
 public class ChatController {
     @FXML
     private VBox usernamePage, mainPage;

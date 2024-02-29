@@ -76,7 +76,7 @@ public class JavaListener implements WebSocket.Listener {
     public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
         String message = CONNECTION_CLOSED;
 
-        if (statusCode != 1000) {
+        if (statusCode != 1000 && !reason.isBlank()) {
             message = reason;
         }
 

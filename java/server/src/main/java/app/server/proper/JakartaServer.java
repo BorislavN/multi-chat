@@ -1,29 +1,29 @@
 package app.server.proper;
 
 import app.server.WebsocketServer;
+import app.util.Logger;
+import jakarta.websocket.DeploymentException;
 import org.glassfish.tyrus.server.Server;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 
 public class JakartaServer implements WebsocketServer {
     private final Server server;
 
-    public JakartaServer(int port) {
-        this.server = new Server("localhost", port, "/", null, JakartaListener.class);
+    public JakartaServer(String host, int port) {
+        this.server = new Server(host, port, "/", null, JakartaListener.class);
     }
 
     @Override
     public void start() {
         try {
             this.server.start();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-            System.out.println("Please press a key to stop the server.");
-            reader.readLine();
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
+        } catch (DeploymentException e) {
+            Logger.logAsError("Server failed to start up!");
             this.server.stop();
         }
+    }
+
+    @Override
+    public void shutdown() {
+        this.server.stop();
     }
 }

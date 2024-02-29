@@ -22,13 +22,15 @@ public class ServerLauncher {
             }
 
             WebsocketServer server = null;
+            String host = "localhost";
+            int port = 80;
 
             if ("1".equals(type)) {
-                server = new JavaServer(80);
+                server = new JavaServer(host, port);
             }
 
             if ("2".equals(type)) {
-                server = new JakartaServer(80);
+                server = new JakartaServer(host, port);
             }
 
             if (server == null) {
@@ -36,9 +38,11 @@ public class ServerLauncher {
                 continue;
             }
 
-            System.out.println("The server will shutdown automatically, when there are no users left...");
-
             server.start();
+            System.out.println("To stop the server type anything...");
+            scanner.next();
+
+            server.shutdown();
             scanner.close();
 
             break;
