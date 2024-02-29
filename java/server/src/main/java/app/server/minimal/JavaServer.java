@@ -1,5 +1,6 @@
 package app.server.minimal;
 
+import app.server.WebsocketServer;
 import app.server.minimal.entity.ConnectionData;
 import app.server.minimal.entity.FrameData;
 import app.server.minimal.entity.UpgradeStatus;
@@ -40,8 +41,7 @@ socket.addEventListener("open", (event) => {
 });
 */
 
-//TODO: decide if the clients will receive messages before choosing an username for the first time
-public class JavaServer {
+public class JavaServer implements WebsocketServer {
     private ServerSocketChannel server;
     private Selector selector;
     private final ServerUtil utilities;
@@ -68,6 +68,7 @@ public class JavaServer {
         }
     }
 
+    @Override
     public void start() {
         if (this.isRunning()) {
             while (!this.activeConnections.isEmpty() || !this.receivedConnection) {
@@ -348,7 +349,9 @@ public class JavaServer {
 
     private void enqueueToAllUsers(ByteBuffer frame) {
         for (ConnectionData value : this.activeConnections.values()) {
-            value.enqueueMessage(frame);
+            if (value.getUsername() != null) {
+                value.enqueueMessage(frame);
+            }
         }
     }
 
@@ -398,10 +401,5 @@ public class JavaServer {
         } catch (IOException e) {
             Logger.logError("Server encountered exception while shutting down", e);
         }
-    }
-
-    public static void main(String[] args) {
-        JavaServer server = new JavaServer(80);
-        server.start();
     }
 }
