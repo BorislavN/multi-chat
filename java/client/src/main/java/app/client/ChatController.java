@@ -19,7 +19,6 @@ import javafx.stage.WindowEvent;
 
 import static app.util.Constants.*;
 
-//TODO: move "chat spamming" message to "announcement" panel (in js too)
 public class ChatController {
     @FXML
     private VBox usernamePage, mainPage;
@@ -84,10 +83,8 @@ public class ChatController {
         }
 
         if (message.equals(this.lastMessage)) {
-            this.textArea.appendText(CHAT_SPAMMING);
-            this.textArea.appendText(System.lineSeparator());
-
-            this.messageInput.clear();
+            this.showError("Chat spamming!");
+            this.messageInput.setStyle("-fx-border-color: red");
 
             return;
         }

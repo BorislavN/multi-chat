@@ -51,7 +51,7 @@ public class JavaServer implements WebsocketServer {
         this.activeConnections = new HashMap<>();
         this.isRunning = new AtomicBoolean(true);
         this.utilities = new ServerUtil();
-        this.workerThread=null;
+        this.workerThread = null;
 
         try {
             this.server = ServerSocketChannel.open();
@@ -75,7 +75,7 @@ public class JavaServer implements WebsocketServer {
             return;
         }
 
-        this.workerThread=new Thread(()->{
+        this.workerThread = new Thread(() -> {
             while (this.isRunning.get()) {
                 this.selectorSelect();
 
@@ -92,58 +92,63 @@ public class JavaServer implements WebsocketServer {
                         this.handleQueuedMessages(key);
 
                     } catch (MalformedFrameException e) {
-                        this.terminateConnection(key, 1002, e.getMessage());
+                        this.terminateConnection(key, true,1002, e.getMessage());
 
                     } catch (MessageLengthException e) {
-                        this.terminateConnection(key, 1009, e.getMessage());
+                        this.terminateConnection(key, true, 1009, e.getMessage());
 
                     } catch (IllegalStateException e) {
-                        this.terminateConnection(key, 1011, e.getMessage());
+                        this.terminateConnection(key, true, 1011, e.getMessage());
 
                     } catch (IOException | ConnectionException e) {
                         Logger.logError("Exception encountered", e);
 
-                        this.disconnectUser(key);
+                        this.disconnectUser(key, true);
                     }
 
                     iterator.remove();
                 }
             }
 
-            System.out.println("Closing!!!!!!!!!");
+            System.out.println("Listener thread shutting down...");
         });
 
         this.workerThread.start();
     }
 
-    //TODO: rework both this and the "start" method
     @Override
     public void shutdown() {
         System.out.println("Starting shutdown process...");
-        this.isRunning.set(false);
 
-        if (this.workerThread==null){
+        if (this.workerThread == null) {
             return;
         }
 
+        this.isRunning.set(false);
+        this.selector.wakeup();
+
         try {
-            this.workerThread.interrupt();
+            Iterator<Map.Entry<Long, ConnectionData>> iterator = this.activeConnections.entrySet().iterator();
 
-            Set<Long> connections = this.activeConnections.keySet();
+            while (iterator.hasNext()) {
+                Map.Entry<Long, ConnectionData> connection = iterator.next();
 
-            for (Long connection : connections) {
-                ConnectionData data = this.activeConnections.get(connection);
+                this.terminateConnection(connection.getValue().getSelectionKey(), false,1001, "Server shutting down!");
 
-                this.terminateConnection(data.getSelectionKey(),1001,"Server shutting down!");
+                iterator.remove();
             }
 
-            System.out.println("Connections left: "+this.activeConnections.size());
+            System.out.println("Connections left: " + this.activeConnections.size());
 
             this.selector.close();
             this.server.close();
 
         } catch (IOException e) {
             Logger.logError("Server encountered exception while shutting down", e);
+        } finally {
+            if (this.workerThread.isAlive()) {
+                this.workerThread.interrupt();
+            }
         }
     }
 
@@ -202,7 +207,7 @@ public class JavaServer implements WebsocketServer {
                 UpgradeStatus result = this.utilities.upgradeConnection(connection);
 
                 if (result.threwException()) {
-                    this.disconnectUser(key);
+                    this.disconnectUser(key, true);
 
                     return;
                 }
@@ -235,7 +240,7 @@ public class JavaServer implements WebsocketServer {
 
                 if (this.wasCloseFrame(pendingFrame.get(0))) {
                     if (data.receivedClose() && data.sentClose()) {
-                        this.disconnectUser(key);
+                        this.disconnectUser(key, true);
                     }
                 }
             }
@@ -248,7 +253,7 @@ public class JavaServer implements WebsocketServer {
         connectionData.setReceivedClose(true);
 
         if (connectionData.receivedClose() && connectionData.sentClose()) {
-            this.disconnectUser(connectionData.getSelectionKey());
+            this.disconnectUser(connectionData.getSelectionKey(), true);
 
             return;
         }
@@ -277,7 +282,7 @@ public class JavaServer implements WebsocketServer {
         this.enqueueToAllUsers(frame);
     }
 
-    private void terminateConnection(SelectionKey key, int code, String reason) {
+    private void terminateConnection(SelectionKey key,boolean removeEntry, int code, String reason) {
         SocketChannel connection = (SocketChannel) key.channel();
         ByteBuffer closeFrame = FrameBuilder.buildCloseFrame(code, reason);
 
@@ -287,21 +292,24 @@ public class JavaServer implements WebsocketServer {
             Logger.logAsError("Exception occurred while sending Close-frame!");
         }
 
-        this.disconnectUser(key);
+        this.disconnectUser(key, removeEntry);
     }
 
-    private void disconnectUser(SelectionKey key) {
+    private void disconnectUser(SelectionKey key, boolean removeEntry) {
         try {
             long connectionId = this.getId(key);
 
             key.cancel();
             key.channel().close();
-            ConnectionData removed = this.activeConnections.remove(connectionId);
 
-            if (this.isRunning.get() && removed.getUsername() != null) {
-                ByteBuffer announcement = FrameBuilder.buildTextFrame(Constants.newLeftAnnouncement(removed.getUsername()));
+            if (removeEntry) {
+                ConnectionData removed = this.activeConnections.remove(connectionId);
 
-                this.enqueueToAllUsers(announcement);
+                if (this.isRunning.get() && removed.getUsername() != null) {
+                    ByteBuffer announcement = FrameBuilder.buildTextFrame(Constants.newLeftAnnouncement(removed.getUsername()));
+
+                    this.enqueueToAllUsers(announcement);
+                }
             }
 
         } catch (IOException e) {

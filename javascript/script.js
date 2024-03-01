@@ -61,10 +61,10 @@ socket.addEventListener("error", (event) => {
 socket.addEventListener("close", (event) => {
   this.disableAllButtons();
 
-  let message="Connection closed!";
+  let message = "Connection closed!";
 
-  if(event.reason && event.code!==1000){
-    message=event.reason;
+  if (event.reason && event.code !== 1000) {
+    message = event.reason;
   }
 
   this.showLoginError(message);
@@ -103,8 +103,7 @@ function onSendClick() {
   }
 
   if (lastMessage === value) {
-    this.appendToTextArea("Chat spamming!");
-    messageInput.value = "";
+    this.setAnnouncement("Chat spamming!");
 
     return;
   }
