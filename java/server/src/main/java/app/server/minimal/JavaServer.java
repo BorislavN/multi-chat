@@ -147,6 +147,7 @@ public class JavaServer implements WebsocketServer {
             Logger.logError("Server encountered exception while shutting down", e);
         } finally {
             if (this.workerThread.isAlive()) {
+                System.out.println("Thread still running - interrupting...");
                 this.workerThread.interrupt();
             }
         }
