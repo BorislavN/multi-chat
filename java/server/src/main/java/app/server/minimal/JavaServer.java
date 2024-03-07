@@ -1,5 +1,6 @@
 package app.server.minimal;
 
+import app.server.UsernameStatus;
 import app.server.WebsocketServer;
 import app.server.minimal.entity.ConnectionData;
 import app.server.minimal.entity.FrameData;
@@ -20,10 +21,14 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static app.util.Constants.*;
+import static app.util.Constants.COMMAND_DELIMITER;
+import static app.util.Constants.USERNAME_TAKEN;
 
 /*JS code required:
 const socket = new WebSocket("ws://localhost:80");
@@ -92,7 +97,7 @@ public class JavaServer implements WebsocketServer {
                         this.handleQueuedMessages(key);
 
                     } catch (MalformedFrameException e) {
-                        this.terminateConnection(key, true,1002, e.getMessage());
+                        this.terminateConnection(key, true, 1002, e.getMessage());
 
                     } catch (MessageLengthException e) {
                         this.terminateConnection(key, true, 1009, e.getMessage());
@@ -133,7 +138,7 @@ public class JavaServer implements WebsocketServer {
             while (iterator.hasNext()) {
                 Map.Entry<Long, ConnectionData> connection = iterator.next();
 
-                this.terminateConnection(connection.getValue().getSelectionKey(), false,1001, "Server shutting down!");
+                this.terminateConnection(connection.getValue().getSelectionKey(), false, 1001, "Server shutting down!");
 
                 iterator.remove();
             }
@@ -283,7 +288,7 @@ public class JavaServer implements WebsocketServer {
         this.enqueueToAllUsers(frame);
     }
 
-    private void terminateConnection(SelectionKey key,boolean removeEntry, int code, String reason) {
+    private void terminateConnection(SelectionKey key, boolean removeEntry, int code, String reason) {
         SocketChannel connection = (SocketChannel) key.channel();
         ByteBuffer closeFrame = FrameBuilder.buildCloseFrame(code, reason);
 
@@ -336,42 +341,33 @@ public class JavaServer implements WebsocketServer {
         FrameData lastFrame = connectionData.getCurrentFrame();
 
         if (lastFrame.getMessage().startsWith(COMMAND_DELIMITER)) {
-            String name = lastFrame.getMessage().substring(COMMAND_DELIMITER.length());
             String responseText = null;
             String announcement = null;
 
-            if (name.length() < MIN_USERNAME_LENGTH) {
-                responseText = USERNAME_TOO_SHORT;
+            UsernameStatus status = new UsernameStatus(lastFrame.getMessage());
+
+            if (!status.isValid()) {
+                responseText = status.getError();
             }
 
-            if (name.length() > MAX_USERNAME_LENGTH) {
-                responseText = USERNAME_TOO_LONG;
-            }
-
-            if (!this.isUsernameAvailable(connectionData, name)) {
+            if (status.isValid() && !this.isUsernameAvailable(connectionData, status.getUsername())) {
                 responseText = USERNAME_TAKEN;
             }
 
             if (responseText == null) {
-                responseText = Constants.newAcceptedResponse(name);
+                responseText = Constants.newAcceptedResponse(status.getUsername());
 
                 String oldName = connectionData.getUsername();
 
-                if (!name.equals(oldName)) {
-                    announcement = Constants.newJoinedAnnouncement(name);
-
-                    if (oldName != null) {
-                        announcement = Constants.newChangedNameAnnouncement(oldName, name);
-                    }
-
-                    connectionData.setUsername(name);
-                }
+                announcement = UsernameStatus.newUsernameSetAnnouncement(oldName, status.getUsername());
             }
 
             ByteBuffer response = FrameBuilder.buildTextFrame(responseText);
             connectionData.enqueueMessage(response);
 
             if (announcement != null) {
+                connectionData.setUsername(status.getUsername());
+
                 ByteBuffer announcementFrame = FrameBuilder.buildTextFrame(announcement);
                 this.enqueueToAllUsers(announcementFrame);
             }
@@ -380,26 +376,6 @@ public class JavaServer implements WebsocketServer {
         }
 
         return false;
-    }
-
-    private void validateControlFrame(FrameData frame) {
-        if (this.isFragment(frame)) {
-            throw new IllegalStateException("Control frames cannot be fragmented!");
-        }
-    }
-
-    private boolean isFragment(FrameData frameData) {
-        return !frameData.isFinished() || frameData.getOpcode() == 0;
-    }
-
-    private boolean isUsernameAvailable(ConnectionData connectionData, String username) {
-        for (ConnectionData value : this.activeConnections.values()) {
-            if (value != connectionData && username.equals(value.getUsername())) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private void enqueueFragmentsToAllUsers(ConnectionData connectionData) {
@@ -420,8 +396,28 @@ public class JavaServer implements WebsocketServer {
         }
     }
 
+    private boolean isUsernameAvailable(ConnectionData current, String username) {
+        for (ConnectionData value : this.activeConnections.values()) {
+            if (value != current && username.equals(value.getUsername())) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean isFragment(FrameData frameData) {
+        return !frameData.isFinished() || frameData.getOpcode() == 0;
+    }
+
     private boolean wasCloseFrame(byte value) {
         return (value & 0b1111) == 8;
+    }
+
+    private void validateControlFrame(FrameData frame) {
+        if (this.isFragment(frame)) {
+            throw new IllegalStateException("Control frames cannot be fragmented!");
+        }
     }
 
     private SocketChannel getChannel(SelectionKey key) {

@@ -53,7 +53,7 @@ public class JakartaClient implements ChatClient {
             }
         }
 
-        stage.close();
+//        stage.close();
     }
 
     @Override

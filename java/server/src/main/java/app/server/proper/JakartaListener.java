@@ -1,18 +1,17 @@
 package app.server.proper;
 
+import app.server.UsernameStatus;
 import app.util.Constants;
 import app.util.Logger;
 import jakarta.websocket.*;
 import jakarta.websocket.server.ServerEndpoint;
 
-import java.util.concurrent.CopyOnWriteArraySet;
-
-import static app.util.Constants.*;
+import static app.util.Constants.COMMAND_DELIMITER;
+import static app.util.Constants.USERNAME_TAKEN;
 
 @ServerEndpoint(value = "/")
 public class JakartaListener {
     private Session session;
-    private final static CopyOnWriteArraySet<JakartaListener> connectedUsers=new CopyOnWriteArraySet<>();
 
     public JakartaListener() {
         this.session = null;
@@ -20,119 +19,79 @@ public class JakartaListener {
 
     @OnOpen
     public void onOpen(Session session) {
-        connectedUsers.add(this);
         this.session = session;
+
+        JakartaServer.addConnection(this);
 
         Logger.log(String.format("Client connected - %s", session.getId()));
     }
 
     @OnMessage
-    public void onMessage(Session session, String message) {
+    public void onMessage(String message) {
         Logger.log(message);
 
-        connectedUsers.forEach(System.out::println);
+        if (message.startsWith(COMMAND_DELIMITER)) {
+            UsernameStatus status = new UsernameStatus(message);
 
-        if (!message.startsWith(COMMAND_DELIMITER)) {
-            this.forwardMessage(message);
+            if (!status.isValid()) {
+                this.sendAsync(status.getError());
+                return;
+            }
 
-            return;
-        }
+            if (!JakartaServer.isUsernameAvailable(this, status.getUsername())) {
+                this.sendAsync(USERNAME_TAKEN);
+                return;
+            }
 
-        String name = message.substring(COMMAND_DELIMITER.length());
-        String responseText = null;
-        String announcement = null;
+            String oldName = this.getUsername();
+            String announcement = UsernameStatus.newUsernameSetAnnouncement(oldName, status.getUsername());
 
-        if (name.length() < MIN_USERNAME_LENGTH) {
-            responseText = USERNAME_TOO_SHORT;
-        }
+            this.sendAsync(Constants.newAcceptedResponse(status.getUsername()));
 
-        if (name.length() > MAX_USERNAME_LENGTH) {
-            responseText = USERNAME_TOO_LONG;
-        }
-
-        if (!this.isUsernameAvailable(session, name)) {
-            responseText = USERNAME_TAKEN;
-        }
-
-        if (responseText == null) {
-            responseText = Constants.newAcceptedResponse(name);
-
-            String oldName = this.getUsername(session);
-
-            if (!name.equals(oldName)) {
-                announcement = Constants.newJoinedAnnouncement(name);
-
-                if (oldName != null) {
-                    announcement = Constants.newChangedNameAnnouncement(oldName, name);
-                }
-
-                this.setUsername(session, name);
+            if (announcement != null) {
+                this.setUsername(status.getUsername());
+                message = announcement;
             }
         }
 
-        this.sendToUser(this, responseText);
-
-        if (announcement != null) {
-            this.forwardMessage(announcement);
-        }
+        JakartaServer.forwardMessage(message);
     }
 
     @OnError
-    public void onError(Session session, Throwable error) {
-        System.out.println("Is open: " + session.isOpen());
+    public void onError(Throwable error) {
+        System.out.println("Is open: " + this.session.isOpen());
 
         Logger.logError("Session encountered exception", error);
 
-        String user = this.getUsername(session);
-        connectedUsers.remove(this);
+        String user = this.getUsername();
+        JakartaServer.removeConnection(this);
 
-        this.forwardMessage(Constants.newLeftAnnouncement(user));
+        JakartaServer.forwardMessage(Constants.newLeftAnnouncement(user));
     }
 
     @OnClose
-    public void onClose(Session session) {
-        System.out.println("Is open: " + session.isOpen());
+    public void onClose() {
+        System.out.println("Is open: " + this.session.isOpen());
 
-        String user = this.getUsername(session);
-        connectedUsers.remove(this);
+        String user = this.getUsername();
+        JakartaServer.removeConnection(this);
 
-        this.forwardMessage(Constants.newLeftAnnouncement(user));
+        JakartaServer.forwardMessage(Constants.newLeftAnnouncement(user));
     }
 
-
-    private void sendToUser(JakartaListener endpoint, String message) {
-        endpoint.session.getAsyncRemote().sendText(message);
+    public Session getSession() {
+        return this.session;
     }
 
-    private void forwardMessage(String message) {
-        for (JakartaListener endpoint : this.connectedUsers) {
-            if (this.getUsername(endpoint.session) != null) {
-                this.sendToUser(endpoint, message);
-            }
-        }
+    public void sendAsync(String message) {
+        this.getSession().getAsyncRemote().sendText(message);
     }
 
-    private boolean isUsernameAvailable(Session session, String username) {
-        for (JakartaListener endpoint : this.connectedUsers) {
-
-            if (endpoint.session.getId().equals(session.getId())) {
-                continue;
-            }
-
-            System.out.println("Session: " + session.getId() + ", name: " + this.getUsername(endpoint.session));
-            if (username.equals(this.getUsername(endpoint.session))) {
-                return false;
-            }
-        }
-
-        return true;
+    public String getUsername() {
+        return (String) this.session.getUserProperties().get("username");
     }
 
-    private void setUsername(Session session, String username) {
-        session.getUserProperties().put("username", username);
-    }
-
-    private String getUsername(Session session) {
-        return (String) session.getUserProperties().get("username");
+    private void setUsername(String username) {
+        this.session.getUserProperties().put("username", username);
     }
 }
