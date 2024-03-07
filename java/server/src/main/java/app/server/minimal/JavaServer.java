@@ -143,8 +143,6 @@ public class JavaServer implements WebsocketServer {
                 iterator.remove();
             }
 
-            System.out.println("Connections left: " + this.activeConnections.size());
-
             this.selector.close();
             this.server.close();
 

@@ -7,7 +7,6 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
 import java.net.http.WebSocket;
-import java.util.Timer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -20,15 +19,15 @@ public class JavaListener implements WebSocket.Listener {
     private CompletableFuture<?> messageStage;
     private volatile boolean closeInitiated;
     private StringBuilder stringBuilder;
-    private final Timer timer;
+    private final Object lock;
 
-    public JavaListener(Timer timer) {
+    public JavaListener(Object lock) {
         this.latestMessageProperty = new MessageProperty(null);
         this.isConnectedProperty = new SimpleStringProperty(null);
         this.stringBuilder = new StringBuilder();
         this.messageStage = new CompletableFuture<>();
         this.closeInitiated = false;
-        this.timer = timer;
+        this.lock = lock;
     }
 
     public boolean isCloseInitiated() {
@@ -83,7 +82,9 @@ public class JavaListener implements WebSocket.Listener {
         this.setIsConnectedProperty(message);
 
         if (this.closeInitiated) {
-            this.timer.cancel();
+            synchronized (this.lock) {
+                this.lock.notify();
+            }
 
             return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
         }

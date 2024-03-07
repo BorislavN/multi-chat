@@ -4,6 +4,7 @@ import app.client.websocket.ChatClient;
 import app.client.websocket.ValueListener;
 import app.client.websocket.minimal.JavaClient;
 import app.client.websocket.proper.JakartaClient;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -83,7 +84,7 @@ public class ChatController {
         }
 
         if (message.equals(this.lastMessage)) {
-            this.showError("Chat spamming!");
+            this.showError(CHAT_SPAMMING);
             this.messageInput.setStyle("-fx-border-color: red");
 
             return;
@@ -123,7 +124,7 @@ public class ChatController {
         event.consume();
 
         this.client.closeClient(stage);
-        this.client.getIsConnectedProperty().removeListener(this.connectionListener);
+        Platform.runLater(() -> this.client.getIsConnectedProperty().removeListener(this.connectionListener));
     }
 
     public void configureClient(int type) {
@@ -232,7 +233,7 @@ public class ChatController {
         if (this.mainPage.isVisible()) {
             mVisibility = false;
             uVisibility = true;
-            tempField=this.usernameInput;
+            tempField = this.usernameInput;
         }
 
         this.setVisibility(this.usernamePage, uVisibility);

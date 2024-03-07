@@ -12,6 +12,7 @@ public class Constants {
     public static final String USERNAME_TOO_LONG = String.format("%s%sMust be less than %d chars!", EXCEPTION_FLAG, COMMAND_DELIMITER, MAX_USERNAME_LENGTH);
     public static final String USERNAME_TAKEN = String.format("%s%sUsername is taken!", EXCEPTION_FLAG, COMMAND_DELIMITER);
     public static final String CHAT_SPAMMING = "Chat spamming!";
+    public static final String WAITING = "Waiting for close...";
     public static final String CONNECTION_LOST= "Connection lost!";
     public static final String CONNECTION_CLOSED= "Connection closed!";
 

@@ -59,8 +59,6 @@ public class JakartaListener {
 
     @OnError
     public void onError(Throwable error) {
-        System.out.println("Is open: " + this.session.isOpen());
-
         Logger.logError("Session encountered exception", error);
 
         String user = this.getUsername();
@@ -71,8 +69,6 @@ public class JakartaListener {
 
     @OnClose
     public void onClose() {
-        System.out.println("Is open: " + this.session.isOpen());
-
         String user = this.getUsername();
         JakartaServer.removeConnection(this);
 

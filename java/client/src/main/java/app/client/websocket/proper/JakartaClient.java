@@ -12,7 +12,6 @@ import java.net.URI;
 
 import static app.util.Constants.CONNECTION_LOST;
 
-//TODO: see if the jakarta implementation waits for a close frame or it closes
 public class JakartaClient implements ChatClient {
     private final JakartaListener listener;
     private final Session session;
@@ -53,7 +52,7 @@ public class JakartaClient implements ChatClient {
             }
         }
 
-//        stage.close();
+        stage.close();
     }
 
     @Override

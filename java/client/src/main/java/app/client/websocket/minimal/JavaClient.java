@@ -2,26 +2,26 @@ package app.client.websocket.minimal;
 
 import app.client.websocket.ChatClient;
 import app.client.websocket.MessageProperty;
+import javafx.application.Platform;
 import javafx.beans.property.StringProperty;
 import javafx.stage.Stage;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.CompletionException;
 
 import static app.util.Constants.CONNECTION_LOST;
+import static app.util.Constants.WAITING;
 
 public class JavaClient implements ChatClient {
     private final WebSocket webSocket;
     private final JavaListener listener;
-    private final Timer timer;
+    private final Object lock;
 
     public JavaClient(int port) {
-        this.timer = new Timer();
-        this.listener = new JavaListener(this.timer);
+        this.lock = new Object();
+        this.listener = new JavaListener(this.lock);
 
         WebSocket temp = null;
 
@@ -33,7 +33,6 @@ public class JavaClient implements ChatClient {
                     .join();
 
         } catch (CompletionException e) {
-            this.timer.cancel();
             this.listener.setIsConnectedProperty(CONNECTION_LOST);
         }
 
@@ -47,26 +46,21 @@ public class JavaClient implements ChatClient {
 
     @Override
     public void closeClient(Stage stage) {
-        if (this.webSocket == null) {
-            stage.close();
-
-            return;
-        }
-
         if (this.listener.getIsConnectedProperty().getValue() != null) {
-            this.timer.cancel();
-            this.webSocket.abort();
+            if (this.webSocket != null) {
+                this.webSocket.abort();
+            }
+
             stage.close();
 
             return;
         }
 
         if (!this.listener.isCloseInitiated()) {
-            this.listener.setCloseInitiated(true);
+            this.listener.setIsConnectedProperty(WAITING);
 
             this.webSocket.sendClose(1000, "Java client wants to quit...")
-                    .thenRun(closeTimer())
-                    .thenRun(stage::close);
+                    .thenRunAsync(closeTimer(stage));
         }
     }
 
@@ -78,20 +72,22 @@ public class JavaClient implements ChatClient {
     @Override
     public StringProperty getIsConnectedProperty() {
         return this.listener.getIsConnectedProperty();
-
     }
 
-    private Runnable closeTimer() {
+    private Runnable closeTimer(Stage stage) {
         return () -> {
-            TimerTask timerTask = new TimerTask() {
-                @Override
-                public void run() {
-                    webSocket.abort();
-                    timer.cancel();
-                }
-            };
+            synchronized (this.lock) {
+                try {
+                    this.listener.setCloseInitiated(true);
+                    this.lock.wait(10000);
 
-            this.timer.schedule(timerTask, 30000);
+                } catch (InterruptedException e) {
+                    //Ignored
+                } finally {
+                    this.webSocket.abort();
+                    Platform.runLater(stage::close);
+                }
+            }
         };
     }
 }
