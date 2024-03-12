@@ -84,6 +84,10 @@ public class JavaServer implements WebsocketServer {
             while (this.isRunning.get()) {
                 this.selectorSelect();
 
+                if(!this.selector.isOpen()){
+                    break;
+                }
+
                 Iterator<SelectionKey> iterator = this.selector.selectedKeys().iterator();
 
                 while (iterator.hasNext()) {

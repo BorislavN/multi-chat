@@ -30,6 +30,7 @@ public class JakartaServer implements WebsocketServer {
 
     @Override
     public void shutdown() {
+        disconnectClients();
         this.server.stop();
     }
 
@@ -38,6 +39,12 @@ public class JakartaServer implements WebsocketServer {
             if (endpoint.getUsername() != null) {
                 endpoint.sendAsync(message);
             }
+        }
+    }
+
+    public static void disconnectClients() {
+        for (JakartaListener endpoint : connectedUsers) {
+            endpoint.disconnect(1001, "Server shutting down!");
         }
     }
 

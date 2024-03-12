@@ -6,6 +6,8 @@ import app.util.Logger;
 import jakarta.websocket.*;
 import jakarta.websocket.server.ServerEndpoint;
 
+import java.io.IOException;
+
 import static app.util.Constants.COMMAND_DELIMITER;
 import static app.util.Constants.USERNAME_TAKEN;
 
@@ -61,19 +63,14 @@ public class JakartaListener {
     public void onError(Throwable error) {
         Logger.logError("Session encountered exception", error);
 
-        String user = this.getUsername();
-        JakartaServer.removeConnection(this);
-
-        JakartaServer.forwardMessage(Constants.newLeftAnnouncement(user));
+        this.removeSession();
     }
 
     @OnClose
     public void onClose() {
-        String user = this.getUsername();
-        JakartaServer.removeConnection(this);
-
-        JakartaServer.forwardMessage(Constants.newLeftAnnouncement(user));
+        this.removeSession();
     }
+
 
     public Session getSession() {
         return this.session;
@@ -83,11 +80,28 @@ public class JakartaListener {
         this.getSession().getAsyncRemote().sendText(message);
     }
 
+    public void disconnect(int code, String reason) {
+        try {
+            this.session.close(new CloseReason(CloseReason.CloseCodes.getCloseCode(code), reason));
+        } catch (IOException e) {
+            Logger.logAsError(String.format("Session %s, encountered exception while closing!", this.getSession().getId()));
+        }
+    }
+
     public String getUsername() {
         return (String) this.session.getUserProperties().get("username");
     }
 
     private void setUsername(String username) {
         this.session.getUserProperties().put("username", username);
+    }
+
+    private void removeSession() {
+        String user = this.getUsername();
+        JakartaServer.removeConnection(this);
+
+        if (user != null) {
+            JakartaServer.forwardMessage(Constants.newLeftAnnouncement(user));
+        }
     }
 }
