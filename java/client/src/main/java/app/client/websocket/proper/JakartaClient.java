@@ -9,6 +9,7 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.concurrent.CompletableFuture;
 
 import static app.util.Constants.CONNECTION_LOST;
 
@@ -35,7 +36,12 @@ public class JakartaClient implements ChatClient {
 
     @Override
     public void sendMessage(String message) {
-        this.session.getAsyncRemote().sendText(message);
+        CompletableFuture.runAsync(() -> this.session.getAsyncRemote().sendText(message))
+                .exceptionally(error -> {
+                    Logger.logError("Send operation failed", error);
+
+                    return null;
+                });
     }
 
     @Override

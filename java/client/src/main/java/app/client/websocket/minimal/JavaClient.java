@@ -2,6 +2,7 @@ package app.client.websocket.minimal;
 
 import app.client.websocket.ChatClient;
 import app.client.websocket.MessageProperty;
+import app.util.Logger;
 import javafx.application.Platform;
 import javafx.beans.property.StringProperty;
 import javafx.stage.Stage;
@@ -9,6 +10,7 @@ import javafx.stage.Stage;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 import static app.util.Constants.CONNECTION_LOST;
@@ -41,7 +43,12 @@ public class JavaClient implements ChatClient {
 
     @Override
     public void sendMessage(String message) {
-        this.webSocket.sendText(message, true);
+        CompletableFuture.runAsync(() -> this.webSocket.sendText(message, true))
+                .exceptionally(error -> {
+                    Logger.logError("Send operation failed", error);
+
+                    return null;
+                });
     }
 
     @Override

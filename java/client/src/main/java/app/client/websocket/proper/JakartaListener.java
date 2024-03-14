@@ -44,12 +44,9 @@ public class JakartaListener {
 
     @OnClose
     public void onClose(CloseReason closeReason) {
-        //TODO: check why error is thrown when exceeding the message limit on the java server implementation
         String message = CONNECTION_CLOSED;
 
         if (closeReason.getCloseCode().getCode() != 1000) {
-            System.out.println(closeReason.getCloseCode());
-            System.out.println(closeReason.getReasonPhrase());
             message = closeReason.getReasonPhrase();
         }
 

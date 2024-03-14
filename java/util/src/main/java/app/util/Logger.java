@@ -5,7 +5,7 @@ import java.time.format.DateTimeFormatter;
 
 public class Logger {
     public static void log(String message) {
-        System.out.printf("[%s]: \"%s\"%n", getTime(), message);
+        System.out.printf("[%s]: \"%s\"%n", getTime(), message.substring(0,Math.min(message.length(),1000)));
     }
 
     public static void logError(String message, Throwable error) {
