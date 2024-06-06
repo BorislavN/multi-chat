@@ -4,6 +4,7 @@ import app.client.websocket.ChatClient;
 import app.client.websocket.ValueListener;
 import app.client.websocket.minimal.JavaClient;
 import app.client.websocket.proper.JakartaClient;
+import app.util.Constants;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
@@ -129,11 +130,11 @@ public class ChatController {
 
     public void configureClient(int type) {
         if (type == 1) {
-            this.client = new JavaClient(80);
+            this.client = new JavaClient(HOST, PORT);
         }
 
         if (type == 2) {
-            this.client = new JakartaClient(80);
+            this.client = new JakartaClient(HOST, PORT);
         }
 
         if (this.client == null) {

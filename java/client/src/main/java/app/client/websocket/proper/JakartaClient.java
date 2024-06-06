@@ -17,14 +17,14 @@ public class JakartaClient implements ChatClient {
     private final JakartaListener listener;
     private final Session session;
 
-    public JakartaClient(int port) {
+    public JakartaClient(String host,int port) {
         this.listener = new JakartaListener();
 
         Session temp = null;
 
         try {
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-            temp = container.connectToServer(this.listener, URI.create(String.format("ws://localhost:%d", port)));
+            temp = container.connectToServer(this.listener, URI.create(String.format("ws://%s:%d",host, port)));
 
         } catch (IOException | DeploymentException e) {
             this.listener.setIsConnectedProperty(CONNECTION_LOST);

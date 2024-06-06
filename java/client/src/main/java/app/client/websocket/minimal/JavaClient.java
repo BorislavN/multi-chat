@@ -21,7 +21,7 @@ public class JavaClient implements ChatClient {
     private final JavaListener listener;
     private final Object lock;
 
-    public JavaClient(int port) {
+    public JavaClient(String host, int port) {
         this.lock = new Object();
         this.listener = new JavaListener(this.lock);
 
@@ -31,7 +31,7 @@ public class JavaClient implements ChatClient {
             temp = HttpClient
                     .newHttpClient()
                     .newWebSocketBuilder()
-                    .buildAsync(URI.create(String.format("ws://localhost:%d", port)), this.listener)
+                    .buildAsync(URI.create(String.format("ws://%s:%d", host, port)), this.listener)
                     .join();
 
         } catch (CompletionException e) {

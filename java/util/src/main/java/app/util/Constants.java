@@ -1,6 +1,8 @@
 package app.util;
 
 public class Constants {
+    public static final String HOST = "localhost";
+    public static final int PORT = 80;
     public static final int MESSAGE_LIMIT = 102400;
     public static final int ATTEMPT_LIMIT = 5;
     public static final int MIN_USERNAME_LENGTH = 3;
@@ -13,8 +15,8 @@ public class Constants {
     public static final String USERNAME_TAKEN = String.format("%s%sUsername is taken!", EXCEPTION_FLAG, COMMAND_DELIMITER);
     public static final String CHAT_SPAMMING = "Chat spamming!";
     public static final String WAITING = "Waiting for close...";
-    public static final String CONNECTION_LOST= "Connection lost!";
-    public static final String CONNECTION_CLOSED= "Connection closed!";
+    public static final String CONNECTION_LOST = "Connection lost!";
+    public static final String CONNECTION_CLOSED = "Connection closed!";
 
     public static String newAcceptedResponse(String name) {
         return String.format("%s%s%s", ACCEPTED_FLAG, COMMAND_DELIMITER, name);

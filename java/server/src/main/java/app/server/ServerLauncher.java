@@ -2,6 +2,7 @@ package app.server;
 
 import app.server.minimal.JavaServer;
 import app.server.proper.JakartaServer;
+import app.util.Constants;
 
 import java.util.Scanner;
 
@@ -22,15 +23,13 @@ public class ServerLauncher {
             }
 
             WebsocketServer server = null;
-            String host = "localhost";
-            int port = 80;
 
             if ("1".equals(type)) {
-                server = new JavaServer(host, port);
+                server = new JavaServer(Constants.HOST, Constants.PORT);
             }
 
             if ("2".equals(type)) {
-                server = new JakartaServer(host, port);
+                server = new JakartaServer(Constants.HOST, Constants.PORT);
             }
 
             if (server == null) {
